@@ -42,6 +42,8 @@ export default function RawMaterials() {
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [stockEntries, setStockEntries] = useState<(StockEntry & { material_name?: string; material_unit?: string; person_name?: string })[]>([]);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -79,7 +81,7 @@ export default function RawMaterials() {
   const fetchData = async () => {
     const [matRes, entryRes] = await Promise.all([
       supabase.from("raw_materials").select("*").order("name"),
-      supabase.from("raw_material_stock_entries").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("raw_material_stock_entries").select("*").order("created_at", { ascending: false }).limit(2000),
     ]);
     setMaterials(matRes.data ?? []);
 
@@ -102,9 +104,21 @@ export default function RawMaterials() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filtered = materials.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = search.trim().toLowerCase();
+  const filtered = materials.filter((m) => m.name.toLowerCase().includes(q));
+
+  const filteredEntries = stockEntries.filter((e) => {
+    if (dateFrom && e.date < dateFrom) return false;
+    if (dateTo && e.date > dateTo) return false;
+    if (!q) return true;
+    return (
+      (e.material_name ?? "").toLowerCase().includes(q) ||
+      (e.supplier ?? "").toLowerCase().includes(q) ||
+      (e.lot_number ?? "").toLowerCase().includes(q) ||
+      (e.notes ?? "").toLowerCase().includes(q) ||
+      (e.person_name ?? "").toLowerCase().includes(q)
+    );
+  });
 
   const addMaterial = async () => {
     if (!newName.trim()) return;
@@ -297,9 +311,20 @@ export default function RawMaterials() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search materials..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by material, supplier, lot, notes…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">From</Label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[150px]" />
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">To</Label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[150px]" />
+          {(dateFrom || dateTo || search) && (
+            <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); }}>Clear</Button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -336,7 +361,7 @@ export default function RawMaterials() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Recent Stock Entries</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Recent Stock Entries ({filteredEntries.length})</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -355,9 +380,9 @@ export default function RawMaterials() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stockEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
-              ) : stockEntries.map((e) => (
+              {filteredEntries.length === 0 ? (
+                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No stock entries match your filters</TableCell></TableRow>
+              ) : filteredEntries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell>{e.material_name}</TableCell>
