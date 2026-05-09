@@ -120,16 +120,27 @@ export default function InventoryView() {
     if (!editTarget || !editName.trim()) return;
     setSavingEdit(true);
     const stockNum = Number(editStock);
-    const { error } = await supabase
+    const nextStock = Number.isFinite(stockNum) ? stockNum : editTarget.current_stock;
+    const { data, error } = await supabase
       .from("raw_materials")
       .update({
         name: editName.trim(),
         unit: editUnit,
-        current_stock: Number.isFinite(stockNum) ? stockNum : editTarget.current_stock,
+        current_stock: nextStock,
       })
-      .eq("id", editTarget.id);
+      .eq("id", editTarget.id)
+      .select("id, name, unit, current_stock, status");
     setSavingEdit(false);
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    if (!data || data.length === 0) {
+      toast({
+        title: "Update not applied",
+        description: "This item could not be updated. Please refresh and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setMaterials((current) => current.map((item) => item.id === editTarget.id ? data[0] : item));
     toast({ title: "Material updated" });
     setEditTarget(null);
     await fetchMaterials();
@@ -153,10 +164,23 @@ export default function InventoryView() {
       setDeleteTarget(null);
       return;
     }
-    const { error } = await supabase.from("raw_materials").delete().eq("id", deleteTarget.id);
+    const { data, error } = await supabase
+      .from("raw_materials")
+      .delete()
+      .eq("id", deleteTarget.id)
+      .select("id");
     setDeleting(false);
-    setDeleteTarget(null);
     if (error) { toast({ title: "Delete failed", description: error.message, variant: "destructive" }); return; }
+    if (!data || data.length === 0) {
+      toast({
+        title: "Delete not applied",
+        description: "This item was not removed. You can use Edit to correct the quantity instead.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setMaterials((current) => current.filter((item) => item.id !== deleteTarget.id));
+    setDeleteTarget(null);
     toast({ title: "Material deleted" });
     await fetchMaterials();
   };
