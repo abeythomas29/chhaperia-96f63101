@@ -48,6 +48,7 @@ export default function InventoryView() {
   const [editTarget, setEditTarget] = useState<RawMaterial | null>(null);
   const [editName, setEditName] = useState("");
   const [editUnit, setEditUnit] = useState("kg");
+  const [editStock, setEditStock] = useState("0");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RawMaterial | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -112,14 +113,20 @@ export default function InventoryView() {
     setEditTarget(m);
     setEditName(m.name);
     setEditUnit(m.unit);
+    setEditStock(String(m.current_stock));
   };
 
   const saveEdit = async () => {
     if (!editTarget || !editName.trim()) return;
     setSavingEdit(true);
+    const stockNum = Number(editStock);
     const { error } = await supabase
       .from("raw_materials")
-      .update({ name: editName.trim(), unit: editUnit })
+      .update({
+        name: editName.trim(),
+        unit: editUnit,
+        current_stock: Number.isFinite(stockNum) ? stockNum : editTarget.current_stock,
+      })
       .eq("id", editTarget.id);
     setSavingEdit(false);
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
@@ -309,6 +316,16 @@ export default function InventoryView() {
                   <SelectItem value="liters">Liters</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Current Stock ({editUnit})</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editStock}
+                onChange={(e) => setEditStock(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Use this to correct wrong inventory totals.</p>
             </div>
             <Button onClick={saveEdit} disabled={savingEdit || !editName.trim()} className="w-full bg-secondary hover:bg-secondary/90">
               {savingEdit ? "Saving…" : "Save Changes"}
