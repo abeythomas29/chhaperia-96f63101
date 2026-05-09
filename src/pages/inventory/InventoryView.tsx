@@ -113,14 +113,20 @@ export default function InventoryView() {
     setEditTarget(m);
     setEditName(m.name);
     setEditUnit(m.unit);
+    setEditStock(String(m.current_stock));
   };
 
   const saveEdit = async () => {
     if (!editTarget || !editName.trim()) return;
     setSavingEdit(true);
+    const stockNum = Number(editStock);
     const { error } = await supabase
       .from("raw_materials")
-      .update({ name: editName.trim(), unit: editUnit })
+      .update({
+        name: editName.trim(),
+        unit: editUnit,
+        current_stock: Number.isFinite(stockNum) ? stockNum : editTarget.current_stock,
+      })
       .eq("id", editTarget.id);
     setSavingEdit(false);
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
