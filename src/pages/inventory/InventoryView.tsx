@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Package, Search, Plus, Boxes, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -52,6 +53,9 @@ export default function InventoryView() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RawMaterial | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const fetchMaterials = async () => {
     const { data } = await supabase.from("raw_materials").select("*").order("name");
@@ -193,6 +197,71 @@ export default function InventoryView() {
     p.code.toLowerCase().includes(search.toLowerCase())
   );
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every((m) => selectedIds.has(m.id));
+  const someFilteredSelected = filtered.some((m) => selectedIds.has(m.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filtered.forEach((m) => next.delete(m.id));
+      } else {
+        filtered.forEach((m) => next.add(m.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const { data: usedRecipes } = await supabase
+      .from("product_recipes")
+      .select("raw_material_id")
+      .in("raw_material_id", ids);
+    const blocked = new Set((usedRecipes ?? []).map((r: any) => r.raw_material_id));
+    const deletable = ids.filter((id) => !blocked.has(id));
+    if (deletable.length === 0) {
+      setBulkDeleting(false);
+      setBulkDeleteOpen(false);
+      toast({
+        title: "Cannot delete",
+        description: "All selected materials are used in product recipes.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const { data, error } = await supabase
+      .from("raw_materials")
+      .delete()
+      .in("id", deletable)
+      .select("id");
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    const deletedIds = new Set((data ?? []).map((d: any) => d.id));
+    setMaterials((cur) => cur.filter((m) => !deletedIds.has(m.id)));
+    setSelectedIds(new Set());
+    toast({
+      title: `Deleted ${deletedIds.size} material(s)`,
+      description: blocked.size > 0 ? `${blocked.size} skipped (used in recipes).` : undefined,
+    });
+    await fetchMaterials();
+  };
+
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -238,15 +307,34 @@ export default function InventoryView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Raw Materials ({filtered.length})
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Raw Materials ({filtered.length})
+            </CardTitle>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected ({selectedIds.size})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allFilteredSelected ? true : (someFilteredSelected ? "indeterminate" : false)}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Current Stock</TableHead>
@@ -256,9 +344,16 @@ export default function InventoryView() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No materials found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No materials found</TableCell></TableRow>
               ) : filtered.map((m) => (
-                <TableRow key={m.id}>
+                <TableRow key={m.id} data-state={selectedIds.has(m.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(m.id)}
+                      onCheckedChange={() => toggleSelect(m.id)}
+                      aria-label={`Select ${m.name}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{m.name}</TableCell>
                   <TableCell>{m.unit}</TableCell>
                   <TableCell className="text-right font-mono">{m.current_stock.toLocaleString()}</TableCell>
@@ -374,6 +469,27 @@ export default function InventoryView() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(open) => !bulkDeleting && setBulkDeleteOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected materials?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-semibold">{selectedIds.size}</span> material(s). Items used in product recipes will be skipped. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleting ? "Deleting…" : "Delete Selected"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
