@@ -328,6 +328,51 @@ export default function ProductionEntry() {
             </Select>
           </div>
 
+          {/* Rope multi-thickness panel */}
+          {(() => {
+            const catName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
+            const isRope = catName.includes("rope");
+            if (!isRope) return null;
+            return (
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold flex items-center gap-1"><Layers className="h-4 w-4" /> Multiple Thickness Rows</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setThicknessRows((r) => [...r, { thickness_mm: "", rolls_count: "", quantity_per_roll: "" }])}>
+                    <Plus className="h-3 w-3 mr-1" /> Add
+                  </Button>
+                </div>
+                {thicknessRows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No rows. Use the fields below for a single thickness, or add rows to record multiple thicknesses in one entry.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {thicknessRows.map((row, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                        <div>
+                          {idx === 0 && <Label className="text-xs">Thickness (mm)</Label>}
+                          <Input type="number" step="any" value={row.thickness_mm} className="h-9"
+                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, thickness_mm: e.target.value } : r))} />
+                        </div>
+                        <div>
+                          {idx === 0 && <Label className="text-xs">Rolls</Label>}
+                          <Input type="number" step="any" value={row.rolls_count} className="h-9"
+                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, rolls_count: e.target.value } : r))} />
+                        </div>
+                        <div>
+                          {idx === 0 && <Label className="text-xs">Qty / Roll</Label>}
+                          <Input type="number" step="any" value={row.quantity_per_roll} className="h-9"
+                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, quantity_per_roll: e.target.value } : r))} />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9" onClick={() => setThicknessRows((rs) => rs.filter((_, i) => i !== idx))}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Number of Rolls</Label>
@@ -339,9 +384,15 @@ export default function ProductionEntry() {
             </div>
           </div>
 
-          <div>
-            <Label>Thickness (mm)</Label>
-            <Input type="number" min="0" step="0.01" value={form.thickness_mm} onChange={(e) => setForm({ ...form, thickness_mm: e.target.value })} placeholder="e.g. 0.25" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Thickness (mm)</Label>
+              <Input type="number" min="0" step="0.01" value={form.thickness_mm} onChange={(e) => setForm({ ...form, thickness_mm: e.target.value })} placeholder="e.g. 0.25" />
+            </div>
+            <div>
+              <Label>GSM</Label>
+              <Input type="number" min="0" step="0.01" value={form.gsm} onChange={(e) => setForm({ ...form, gsm: e.target.value })} placeholder="e.g. 80" />
+            </div>
           </div>
 
           <div>
@@ -349,16 +400,38 @@ export default function ProductionEntry() {
             <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="meters">Meters</SelectItem>
-                <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                {UNIT_OPTIONS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Copper Tape flags */}
+          {(() => {
+            const catName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
+            const isCopperTape = catName.includes("copper") || catName.includes("semi cond") || catName.includes("water block");
+            if (!isCopperTape) return null;
+            return (
+              <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/30">
+                <Label className="text-sm font-semibold">Copper Tape Options</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox id="raw_mat_inc" checked={form.raw_material_included}
+                    onCheckedChange={(c) => setForm({ ...form, raw_material_included: !!c })} />
+                  <Label htmlFor="raw_mat_inc" className="text-sm font-normal">Raw material (fiber-glass tape) prepared here</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox id="lab_inc" checked={form.lab_report_included}
+                    onCheckedChange={(c) => setForm({ ...form, lab_report_included: !!c })} />
+                  <Label htmlFor="lab_inc" className="text-sm font-normal">Lab report prepared here</Label>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="bg-muted rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground">Total Quantity</p>
+            <p className="text-sm text-muted-foreground">Total Quantity {thicknessRows.length > 0 ? "(single-row preview)" : ""}</p>
             <p className="text-3xl font-bold text-primary">{totalQuantity.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{form.unit}</span></p>
           </div>
+
 
          <div>
            <Label>Notes / Remarks (Optional)</Label>
