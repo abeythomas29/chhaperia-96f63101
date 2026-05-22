@@ -32,8 +32,6 @@ export default function Head36Entry() {
     rolls_produced: "",
     roll_width_mm: "",
     length_per_tape_mtr: "",
-    thickness_mm: "",
-    gsm: "",
     unit: "meters",
     notes: "",
   });
@@ -44,9 +42,8 @@ export default function Head36Entry() {
       const { data } = await supabase
         .from("slitting_entries")
         .select("id, date, cut_quantity_produced, unit, product_codes(code, id)")
-        .eq("slitting_manager_id", user.id)
         .order("date", { ascending: false })
-        .limit(50);
+        .limit(100);
       setSlittingEntries((data as unknown as SlittingRow[]) ?? []);
       setLoading(false);
     })();
@@ -55,7 +52,6 @@ export default function Head36Entry() {
   const width = parseFloat(form.roll_width_mm) || 0;
   const length = parseFloat(form.length_per_tape_mtr) || 0;
   const rolls = parseFloat(form.rolls_produced) || 0;
-  const gsm = parseFloat(form.gsm) || 0;
 
   const totalLength = length * rolls;
   const totalSqm = width && length && rolls ? (width * length / 1000) * rolls : 0;
@@ -76,8 +72,6 @@ export default function Head36Entry() {
       rolls_produced: rolls,
       roll_width_mm: width || null,
       length_per_tape_mtr: length || null,
-      thickness_mm: form.thickness_mm ? parseFloat(form.thickness_mm) : null,
-      gsm: gsm || null,
       unit: form.unit,
       notes: form.notes || null,
       operator_id: user.id,
@@ -86,7 +80,7 @@ export default function Head36Entry() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "36 Head entry saved" });
-      setForm({ ...form, rolls_taken: "", rolls_produced: "", roll_width_mm: "", length_per_tape_mtr: "", thickness_mm: "", gsm: "", notes: "" });
+      setForm({ ...form, rolls_taken: "", rolls_produced: "", roll_width_mm: "", length_per_tape_mtr: "", notes: "" });
     }
     setSubmitting(false);
   };
@@ -140,26 +134,14 @@ export default function Head36Entry() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Thickness (mm)</Label>
-              <Input type="number" step="any" value={form.thickness_mm}
-                onChange={(e) => setForm({ ...form, thickness_mm: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>GSM</Label>
-              <Input type="number" step="any" value={form.gsm}
-                onChange={(e) => setForm({ ...form, gsm: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Unit</Label>
-              <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {UNIT_OPTIONS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Unit</Label>
+            <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {UNIT_OPTIONS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="bg-muted rounded-lg p-4 grid grid-cols-2 gap-3 text-center">
