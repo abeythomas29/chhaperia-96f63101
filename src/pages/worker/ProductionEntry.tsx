@@ -143,8 +143,7 @@ export default function ProductionEntry() {
     if (form.tensile_strength) baseExtras.tensile_strength = Number(form.tensile_strength);
     if (form.elongation) baseExtras.elongation = Number(form.elongation);
     if (form.surface_resistance) baseExtras.surface_resistance = Number(form.surface_resistance);
-    baseExtras.lab_report_included = form.lab_report_included;
-    baseExtras.raw_material_included = form.raw_material_included;
+    // lab_report_included / raw_material_included are UI-only toggles; not persisted
 
     const rowsToInsert = useMultiThickness
       ? validRopeRows.map((r) => ({
