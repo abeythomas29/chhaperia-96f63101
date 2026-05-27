@@ -14,10 +14,26 @@ interface SlittingRow {
   cut_width_mm: number;
   remaining_returned: number;
   thickness_mm: number | null;
+  gsm: number | null;
   unit: string;
   notes: string | null;
   product_codes: { code: string } | null;
 }
+
+const parseGsm = (notes: string | null): number => {
+  if (!notes) return 0;
+  const m = notes.match(/GSM:\s*([\d.]+)/i);
+  return m ? parseFloat(m[1]) : 0;
+};
+
+const computeTotals = (r: SlittingRow) => {
+  // cut_quantity_produced stores total length in mtr (rollLength × rolls) when length provided
+  const lengthMtr = r.cut_quantity_produced || 0;
+  const sqm = (r.cut_width_mm / 1000) * lengthMtr;
+  const gsm = r.gsm ?? parseGsm(r.notes);
+  const kg = gsm > 0 ? (sqm * gsm) / 1000 : 0;
+  return { lengthMtr, sqm, kg };
+};
 
 export default function SlittingHistory() {
   const { user } = useAuth();
@@ -29,7 +45,7 @@ export default function SlittingHistory() {
     const fetch = async () => {
       const { data } = await supabase
         .from("slitting_entries")
-        .select("id, date, source_quantity, cut_quantity_produced, cut_width_mm, remaining_returned, thickness_mm, unit, notes, product_codes(code)")
+        .select("id, date, source_quantity, cut_quantity_produced, cut_width_mm, remaining_returned, thickness_mm, gsm, unit, notes, product_codes(code)")
         .eq("slitting_manager_id", user.id)
         .order("date", { ascending: false });
       setEntries((data as unknown as SlittingRow[]) ?? []);
@@ -64,25 +80,28 @@ export default function SlittingHistory() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Taken</TableHead>
                   <TableHead>Cut Width</TableHead>
-                  <TableHead>Produced</TableHead>
-                  <TableHead>Returned</TableHead>
+                  <TableHead className="text-right">Length (mtr)</TableHead>
+                  <TableHead className="text-right">Area (sqm)</TableHead>
+                  <TableHead className="text-right">Weight (kg)</TableHead>
                   <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entries.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
-                    <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
-                    <TableCell>{e.source_quantity} {e.unit}</TableCell>
-                    <TableCell>{e.cut_width_mm} mm</TableCell>
-                    <TableCell>{e.cut_quantity_produced} {e.unit}</TableCell>
-                    <TableCell>{e.remaining_returned} {e.unit}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{e.notes ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
+                {entries.map((e) => {
+                  const t = computeTotals(e);
+                  return (
+                    <TableRow key={e.id}>
+                      <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
+                      <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
+                      <TableCell>{e.cut_width_mm} mm</TableCell>
+                      <TableCell className="text-right font-mono">{t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-mono">{t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-mono">{t.kg > 0 ? t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{e.notes ?? "—"}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
