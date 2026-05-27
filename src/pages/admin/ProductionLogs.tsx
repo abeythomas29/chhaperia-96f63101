@@ -85,6 +85,8 @@ export default function ProductionLogs() {
 
   // Lab report dialog
   const [labEntry, setLabEntry] = useState<LogEntry | null>(null);
+  // Totals dialog
+  const [totalsEntry, setTotalsEntry] = useState<LogEntry | null>(null);
 
   // Dropdowns
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
