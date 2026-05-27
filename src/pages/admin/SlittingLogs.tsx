@@ -202,6 +202,7 @@ export default function SlittingLogs() {
                   <TableHead className="text-right">Area (sqm)</TableHead>
                   <TableHead className="text-right">Weight (kg)</TableHead>
                   <TableHead className="text-right">Totals</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
