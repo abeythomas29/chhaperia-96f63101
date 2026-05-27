@@ -55,6 +55,8 @@ interface Client {
 export default function ProductionLogs() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Date range filter
