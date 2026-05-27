@@ -219,15 +219,9 @@ export default function SlittingHistory() {
                   <Input type="number" step="any" value={editForm.cut_quantity_produced} onChange={(e) => setEditForm({ ...editForm, cut_quantity_produced: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Thickness (mm)</Label>
-                  <Input type="number" step="any" value={editForm.thickness_mm} onChange={(e) => setEditForm({ ...editForm, thickness_mm: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>GSM</Label>
-                  <Input type="number" step="any" value={editForm.gsm} onChange={(e) => setEditForm({ ...editForm, gsm: e.target.value })} />
-                </div>
+              <div className="space-y-2">
+                <Label>Thickness (mm)</Label>
+                <Input type="number" step="any" value={editForm.thickness_mm} onChange={(e) => setEditForm({ ...editForm, thickness_mm: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>
