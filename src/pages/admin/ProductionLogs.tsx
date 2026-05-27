@@ -146,8 +146,9 @@ export default function ProductionLogs() {
     const entryDate = new Date(e.date);
     const matchesFrom = !dateFrom || entryDate >= dateFrom;
     const matchesTo = !dateTo || entryDate <= dateTo;
+    const matchesCategory = categoryFilter === "all" || e.product_codes?.category_id === categoryFilter;
 
-    return matchesSearch && matchesFrom && matchesTo;
+    return matchesSearch && matchesFrom && matchesTo && matchesCategory;
   });
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id));
