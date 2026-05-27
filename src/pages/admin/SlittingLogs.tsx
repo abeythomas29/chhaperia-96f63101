@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Scissors, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Scissors, Search, Sigma } from "lucide-react";
 import { format } from "date-fns";
 
 interface SlittingRow {
@@ -21,18 +23,20 @@ interface SlittingRow {
   product_codes: { code: string } | null;
 }
 
-const parseGsm = (notes: string | null): number => {
+const parseNum = (notes: string | null, label: string): number => {
   if (!notes) return 0;
-  const m = notes.match(/GSM\s*[:\-]*\s*([\d.]+)/i);
+  const m = notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
   return m ? parseFloat(m[1]) : 0;
 };
 
 const computeTotals = (r: SlittingRow) => {
   const lengthMtr = r.cut_quantity_produced || 0;
   const sqm = (r.cut_width_mm / 1000) * lengthMtr;
-  const gsm = r.gsm ?? parseGsm(r.notes);
+  const gsm = r.gsm ?? parseNum(r.notes, "GSM");
   const kg = gsm > 0 ? (sqm * gsm) / 1000 : 0;
-  return { lengthMtr, sqm, kg };
+  const rollLength = parseNum(r.notes, "RollLength");
+  const rolls = rollLength > 0 ? lengthMtr / rollLength : 0;
+  return { lengthMtr, sqm, kg, rolls, rollLength };
 };
 
 export default function SlittingLogs() {
@@ -41,6 +45,7 @@ export default function SlittingLogs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState<string>("all");
+  const [detailEntry, setDetailEntry] = useState<SlittingRow | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -100,12 +105,13 @@ export default function SlittingLogs() {
   const totals = filtered.reduce(
     (acc, e) => {
       const t = computeTotals(e);
+      acc.rolls += t.rolls;
       acc.length += t.lengthMtr;
       acc.sqm += t.sqm;
       acc.kg += t.kg;
       return acc;
     },
-    { length: 0, sqm: 0, kg: 0 }
+    { rolls: 0, length: 0, sqm: 0, kg: 0 }
   );
 
   if (loading) {
@@ -145,8 +151,8 @@ export default function SlittingLogs() {
 
         <div className="bg-muted rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-4">
           <div>
-            <p className="text-xs text-muted-foreground">Entries</p>
-            <p className="text-xl font-bold text-primary">{filtered.length}</p>
+            <p className="text-xs text-muted-foreground">Total Rolls</p>
+            <p className="text-xl font-bold text-primary">{totals.rolls.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Length</p>
@@ -173,10 +179,11 @@ export default function SlittingLogs() {
                   <TableHead>Product</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Cut Width</TableHead>
+                  <TableHead className="text-right">Rolls</TableHead>
                   <TableHead className="text-right">Length (mtr)</TableHead>
                   <TableHead className="text-right">Area (sqm)</TableHead>
                   <TableHead className="text-right">Weight (kg)</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-right">Totals</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,10 +195,15 @@ export default function SlittingLogs() {
                       <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
                       <TableCell>{managers[e.slitting_manager_id] ?? "—"}</TableCell>
                       <TableCell>{e.cut_width_mm} mm</TableCell>
+                      <TableCell className="text-right font-mono">{t.rolls > 0 ? t.rolls.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}</TableCell>
                       <TableCell className="text-right font-mono">{t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.kg > 0 ? t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{e.notes ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => setDetailEntry(e)} title="View Totals" className="text-primary hover:text-primary">
+                          <Sigma className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -199,6 +211,42 @@ export default function SlittingLogs() {
             </Table>
           </div>
         )}
+
+        {/* Totals dialog */}
+        <Dialog open={!!detailEntry} onOpenChange={(open) => !open && setDetailEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sigma className="h-5 w-5" /> Auto-Calculated Totals
+              </DialogTitle>
+              <DialogDescription>
+                {detailEntry?.product_codes?.code ?? "—"} · {detailEntry ? format(new Date(detailEntry.date), "dd/MM/yyyy") : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {detailEntry && (() => {
+              const t = computeTotals(detailEntry);
+              const rows: [string, string][] = [
+                ["Total Rolls", t.rolls > 0 ? `${t.rolls.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"],
+                ["Total Length", `${t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })} mtr`],
+                ["Total Area", `${t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })} sqm`],
+                ["Total Weight", t.kg > 0 ? `${t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 })} kg` : "—"],
+              ];
+              return (
+                <div className="divide-y border rounded-md">
+                  {rows.map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-muted-foreground">{k}</span>
+                      <span className="font-mono font-semibold">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailEntry(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
