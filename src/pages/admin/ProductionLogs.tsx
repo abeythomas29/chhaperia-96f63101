@@ -329,11 +329,11 @@ export default function ProductionLogs() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
               filtered.map((e) => (
@@ -349,6 +349,20 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const fields = [
+                        e.gsm != null && `GSM: ${e.gsm}`,
+                        e.tensile_strength != null && `Tensile: ${e.tensile_strength}`,
+                        e.elongation != null && `Elong: ${e.elongation}`,
+                        e.swelling_height != null && `Swell H: ${e.swelling_height}`,
+                        e.swelling_speed != null && `Swell S: ${e.swelling_speed}`,
+                        e.surface_resistance != null && `SR: ${e.surface_resistance}`,
+                      ].filter(Boolean);
+                      if (fields.length === 0) return <span className="text-muted-foreground">—</span>;
+                      return <div className="text-xs space-y-0.5 min-w-[140px]">{fields.map((f, i) => <div key={i}>{f}</div>)}</div>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
