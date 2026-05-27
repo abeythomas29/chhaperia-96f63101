@@ -25,6 +25,13 @@ interface LogEntry {
   thickness_mm: number | null;
   product_code_id: string;
   client_id: string | null;
+  lab_report_included: boolean | null;
+  gsm: number | null;
+  tensile_strength: number | null;
+  elongation: number | null;
+  swelling_height: number | null;
+  swelling_speed: number | null;
+  surface_resistance: number | null;
   product_codes: { code: string } | null;
   profiles: { name: string } | null;
 }
@@ -78,7 +85,7 @@ export default function ProductionLogs() {
     // Try with thickness_mm first; fall back without it if column doesn't exist yet
     let { data, error } = await supabase
       .from("production_entries")
-      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), profiles:worker_id(name)")
+      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, lab_report_included, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, product_codes(code), profiles:worker_id(name)")
       .order("date", { ascending: false })
       .limit(500);
 
@@ -315,17 +322,18 @@ export default function ProductionLogs() {
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Thickness (mm)</TableHead>
+              <TableHead>Lab Report</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
               filtered.map((e) => (
@@ -341,6 +349,20 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const fields = [
+                        e.gsm != null && `GSM: ${e.gsm}`,
+                        e.tensile_strength != null && `Tensile: ${e.tensile_strength}`,
+                        e.elongation != null && `Elong: ${e.elongation}`,
+                        e.swelling_height != null && `Swell H: ${e.swelling_height}`,
+                        e.swelling_speed != null && `Swell S: ${e.swelling_speed}`,
+                        e.surface_resistance != null && `SR: ${e.surface_resistance}`,
+                      ].filter(Boolean);
+                      if (fields.length === 0) return <span className="text-muted-foreground">—</span>;
+                      return <div className="text-xs space-y-0.5 min-w-[140px]">{fields.map((f, i) => <div key={i}>{f}</div>)}</div>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
