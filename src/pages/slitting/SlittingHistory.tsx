@@ -160,6 +160,7 @@ export default function SlittingHistory() {
                   <TableHead className="text-right">Length (mtr)</TableHead>
                   <TableHead className="text-right">Area (sqm)</TableHead>
                   <TableHead className="text-right">Weight (kg)</TableHead>
+                  <TableHead className="text-right">Thickness (mm)</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -167,6 +168,7 @@ export default function SlittingHistory() {
               <TableBody>
                 {entries.map((e) => {
                   const t = computeTotals(e);
+                  const displayNotes = (e.notes ?? "").split("|").map((s) => s.trim()).filter((s) => s && !/^gsm\s*[:\-]/i.test(s)).join(" | ");
                   return (
                     <TableRow key={e.id}>
                       <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -175,7 +177,8 @@ export default function SlittingHistory() {
                       <TableCell className="text-right font-mono">{t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.kg > 0 ? t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{e.notes ?? "—"}</TableCell>
+                      <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{displayNotes || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
@@ -216,15 +219,9 @@ export default function SlittingHistory() {
                   <Input type="number" step="any" value={editForm.cut_quantity_produced} onChange={(e) => setEditForm({ ...editForm, cut_quantity_produced: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Thickness (mm)</Label>
-                  <Input type="number" step="any" value={editForm.thickness_mm} onChange={(e) => setEditForm({ ...editForm, thickness_mm: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>GSM</Label>
-                  <Input type="number" step="any" value={editForm.gsm} onChange={(e) => setEditForm({ ...editForm, gsm: e.target.value })} />
-                </div>
+              <div className="space-y-2">
+                <Label>Thickness (mm)</Label>
+                <Input type="number" step="any" value={editForm.thickness_mm} onChange={(e) => setEditForm({ ...editForm, thickness_mm: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>
