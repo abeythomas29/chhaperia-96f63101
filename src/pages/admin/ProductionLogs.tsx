@@ -33,13 +33,18 @@ interface LogEntry {
   swelling_speed: number | null;
   surface_resistance: number | null;
   notes: string | null;
-  product_codes: { code: string } | null;
+  product_codes: { code: string; category_id: string | null } | null;
   profiles: { name: string } | null;
 }
 
 interface ProductCode {
   id: string;
   code: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface Client {
