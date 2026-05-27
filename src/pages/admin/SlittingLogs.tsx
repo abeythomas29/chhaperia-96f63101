@@ -23,7 +23,7 @@ interface SlittingRow {
 
 const parseGsm = (notes: string | null): number => {
   if (!notes) return 0;
-  const m = notes.match(/GSM:\s*([\d.]+)/i);
+  const m = notes.match(/GSM\s*[:\-]*\s*([\d.]+)/i);
   return m ? parseFloat(m[1]) : 0;
 };
 
@@ -44,10 +44,29 @@ export default function SlittingLogs() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const fullSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, slitting_manager_id, product_codes(code)";
+      const basicSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, unit, notes, slitting_manager_id, product_codes(code)";
+
+      let { data, error } = await supabase
         .from("slitting_entries")
-        .select("id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, slitting_manager_id, product_codes(code)")
+        .select(fullSelect)
         .order("date", { ascending: false });
+
+      if (error) {
+        const fallback = await supabase
+          .from("slitting_entries")
+          .select(basicSelect)
+          .order("date", { ascending: false });
+        data = fallback.data as any;
+        error = fallback.error;
+      }
+
+      if (error) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
       const rows = (data as unknown as SlittingRow[]) ?? [];
       setEntries(rows);
 

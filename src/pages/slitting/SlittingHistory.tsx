@@ -22,7 +22,7 @@ interface SlittingRow {
 
 const parseGsm = (notes: string | null): number => {
   if (!notes) return 0;
-  const m = notes.match(/GSM:\s*([\d.]+)/i);
+  const m = notes.match(/GSM\s*[:\-]*\s*([\d.]+)/i);
   return m ? parseFloat(m[1]) : 0;
 };
 
@@ -43,11 +43,31 @@ export default function SlittingHistory() {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase
+      const fullSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, remaining_returned, thickness_mm, gsm, unit, notes, product_codes(code)";
+      const basicSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, remaining_returned, thickness_mm, unit, notes, product_codes(code)";
+
+      let { data, error } = await supabase
         .from("slitting_entries")
-        .select("id, date, source_quantity, cut_quantity_produced, cut_width_mm, remaining_returned, thickness_mm, gsm, unit, notes, product_codes(code)")
+        .select(fullSelect)
         .eq("slitting_manager_id", user.id)
         .order("date", { ascending: false });
+
+      if (error) {
+        const fallback = await supabase
+          .from("slitting_entries")
+          .select(basicSelect)
+          .eq("slitting_manager_id", user.id)
+          .order("date", { ascending: false });
+        data = fallback.data as any;
+        error = fallback.error;
+      }
+
+      if (error) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
       setEntries((data as unknown as SlittingRow[]) ?? []);
       setLoading(false);
     };
