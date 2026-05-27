@@ -274,7 +274,6 @@ export default function SlittingLogs() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        </Dialog>
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && !deleting && setDeleteId(null)}>
           <AlertDialogContent>
