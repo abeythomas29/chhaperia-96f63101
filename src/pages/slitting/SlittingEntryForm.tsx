@@ -213,21 +213,10 @@ export default function SlittingEntryForm() {
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent className="px-3 pb-3 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Produced Roll Length (mtr)</Label>
-                  <Input type="number" step="any" value={form.roll_length_mtr}
-                    onChange={(e) => setForm({ ...form, roll_length_mtr: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Output Unit</Label>
-                  <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {UNIT_OPTIONS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Produced Roll Length (mtr)</Label>
+                <Input type="number" step="any" value={form.roll_length_mtr}
+                  onChange={(e) => setForm({ ...form, roll_length_mtr: e.target.value })} />
               </div>
 
               <p className="text-xs text-muted-foreground">
