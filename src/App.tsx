@@ -16,6 +16,7 @@ import Products from "./pages/admin/Products";
 import Clients from "./pages/admin/Clients";
 import UserManagement from "./pages/admin/UserManagement";
 import RawMaterials from "./pages/admin/RawMaterials";
+import SlittingLogs from "./pages/admin/SlittingLogs";
 import ProductionEntry from "./pages/worker/ProductionEntry";
 import ProductionHistory from "./pages/worker/ProductionHistory";
 import MyIssues from "./pages/worker/MyIssues";
