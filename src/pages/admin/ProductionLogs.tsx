@@ -597,6 +597,7 @@ export default function ProductionLogs() {
             const kg = isKg ? total : (gsm > 0 && sqm > 0 ? (sqm * gsm) / 1000 : 0);
             const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
             const rows: [string, string][] = [
+              [`Total Quantity (${totalsEntry.unit})`, total > 0 ? `${fmt(total)} ${totalsEntry.unit}` : "—"],
               ["Total Rolls", rolls > 0 ? fmt(rolls, 0) : "—"],
               ["Total Length", lengthMtr > 0 ? `${fmt(lengthMtr)} mtr` : "—"],
               ["Total Area", sqm > 0 ? `${fmt(sqm)} sqm` : "—"],
