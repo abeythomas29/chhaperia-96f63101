@@ -245,7 +245,19 @@ export default function SlittingEntryForm() {
           </Collapsible>
 
           {/* Auto-calculated totals */}
+          {(() => {
+            const totalInUnit = form.unit === "kg" ? totalKg : form.unit === "sqm" ? totalSqm : totalLength;
+            return (
+              <>
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Total Quantity ({form.unit})</p>
+                  <p className="text-2xl font-bold text-primary">{totalInUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-base font-normal">{form.unit}</span></p>
+                </div>
+              </>
+            );
+          })()}
           <div className="bg-muted rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+
             <div>
               <p className="text-xs text-muted-foreground">Total Rolls</p>
               <p className="text-xl font-bold text-primary">{totalRolls.toLocaleString()}</p>
