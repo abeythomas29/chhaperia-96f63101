@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Download, Search, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Download, Search, Pencil, Trash2, CalendarIcon, FlaskConical } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,9 @@ export default function ProductionLogs() {
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Lab report dialog
+  const [labEntry, setLabEntry] = useState<LogEntry | null>(null);
 
   // Dropdowns
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
@@ -387,27 +390,23 @@ export default function ProductionLogs() {
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell>
                     {(() => {
-                      // Parse lab values from notes as fallback (newer entries store labs there)
                       const parseNote = (label: string) => {
                         if (!e.notes) return null;
                         const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
                         const m = e.notes.match(re);
                         return m ? m[1] : null;
                       };
-                      const get = (col: number | null | undefined, label: string) =>
-                        col != null ? String(col) : parseNote(label);
-
-                      const pairs: [string, string | null][] = [
-                        ["GSM", get(e.gsm, "GSM")],
-                        ["Tensile", get(e.tensile_strength, "Tensile")],
-                        ["Elong", get(e.elongation, "Elongation") ?? get(null, "Elong")],
-                        ["Swell H", get(e.swelling_height, "Swelling Height") ?? get(null, "Swell H")],
-                        ["Swell S", get(e.swelling_speed, "Swelling Speed") ?? get(null, "Swell S")],
-                        ["SR", get(e.surface_resistance, "Surface Resistance") ?? get(null, "SR")],
-                      ];
-                      const fields = pairs.filter(([, v]) => v != null).map(([k, v]) => `${k}: ${v}`);
-                      if (fields.length === 0) return <span className="text-muted-foreground">—</span>;
-                      return <div className="text-xs space-y-0.5 min-w-[140px]">{fields.map((f, i) => <div key={i}>{f}</div>)}</div>;
+                      const has =
+                        e.gsm != null || e.tensile_strength != null || e.elongation != null ||
+                        e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
+                        parseNote("GSM") || parseNote("Tensile") || parseNote("Elongation") ||
+                        parseNote("Swelling Height") || parseNote("Swelling Speed") || parseNote("Surface Resistance");
+                      if (!has) return <span className="text-muted-foreground">—</span>;
+                      return (
+                        <Button variant="outline" size="sm" className="h-7" onClick={() => setLabEntry(e)}>
+                          <FlaskConical className="h-3.5 w-3.5 mr-1" /> View
+                        </Button>
+                      );
                     })()}
                   </TableCell>
                   <TableCell className="text-right">
@@ -519,6 +518,53 @@ export default function ProductionLogs() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lab Report Dialog */}
+      <Dialog open={!!labEntry} onOpenChange={(open) => !open && setLabEntry(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5" /> Lab Report
+            </DialogTitle>
+            <DialogDescription>
+              {labEntry?.product_codes?.code ?? "—"} · {labEntry ? format(new Date(labEntry.date), "dd/MM/yyyy") : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {labEntry && (() => {
+            const parseNote = (label: string) => {
+              if (!labEntry.notes) return null;
+              const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
+              const m = labEntry.notes.match(re);
+              return m ? m[1] : null;
+            };
+            const get = (col: number | null | undefined, label: string) =>
+              col != null ? String(col) : parseNote(label);
+            const pairs: [string, string | null][] = [
+              ["GSM", get(labEntry.gsm, "GSM")],
+              ["Tensile Strength", get(labEntry.tensile_strength, "Tensile")],
+              ["Elongation", get(labEntry.elongation, "Elongation")],
+              ["Swelling Height", get(labEntry.swelling_height, "Swelling Height")],
+              ["Swelling Speed", get(labEntry.swelling_speed, "Swelling Speed")],
+              ["Surface Resistance", get(labEntry.surface_resistance, "Surface Resistance")],
+            ];
+            const rows = pairs.filter(([, v]) => v != null);
+            if (rows.length === 0) return <p className="text-muted-foreground text-sm">No lab data recorded.</p>;
+            return (
+              <div className="divide-y border rounded-md">
+                {rows.map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-sm text-muted-foreground">{k}</span>
+                    <span className="font-mono font-semibold">{v}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLabEntry(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
