@@ -190,7 +190,6 @@ export default function SlittingLogs() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
