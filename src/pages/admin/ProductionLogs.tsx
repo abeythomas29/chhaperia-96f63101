@@ -353,13 +353,17 @@ export default function ProductionLogs() {
               <TableHead className="w-10">
                 <Checkbox checked={allFilteredSelected} onCheckedChange={toggleSelectAll} aria-label="Select all" />
               </TableHead>
-      <TableHead className="text-base">Date</TableHead>
+              <TableHead className="text-base">Date</TableHead>
               <TableHead>Product Code</TableHead>
               <TableHead>Production Manager</TableHead>
               <TableHead className="text-right">Rolls</TableHead>
               <TableHead className="text-right">Qty/Roll</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Length (mtr)</TableHead>
+              <TableHead className="text-right">Area (sqm)</TableHead>
+              <TableHead className="text-right">Weight (kg)</TableHead>
+              <TableHead className="text-right">GSM</TableHead>
               <TableHead className="text-right">Thickness (mm)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -367,14 +371,34 @@ export default function ProductionLogs() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
-              filtered.map((e) => (
+              filtered.map((e) => {
+                const parseNum = (label: string) => {
+                  if (!e.notes) return 0;
+                  const m = e.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
+                  return m ? parseFloat(m[1]) : 0;
+                };
+                const total = e.total_quantity ?? (e.rolls_count * e.quantity_per_roll);
+                const isMeters = e.unit === "meters";
+                const isKg = e.unit === "kg";
+                const lengthMtr = isMeters ? total : 0;
+                const width = parseNum("Width") || parseNum("RollWidth");
+                const gsm = e.gsm ?? parseNum("GSM");
+                const sqm = width > 0 && lengthMtr > 0 ? (width / 1000) * lengthMtr : 0;
+                const kg = isKg ? total : (gsm > 0 && sqm > 0 ? (sqm * gsm) / 1000 : 0);
+                const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
+                const hasReport =
+                  e.gsm != null || e.thickness_mm != null || e.tensile_strength != null || e.elongation != null ||
+                  e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
+                  parseNum("GSM") || parseNum("Tensile") || parseNum("Elongation") ||
+                  parseNum("Swelling Height") || parseNum("Swelling Speed") || parseNum("Surface Resistance");
+                return (
                 <TableRow key={e.id} data-state={selectedIds.has(e.id) ? "selected" : undefined}>
                   <TableCell>
                     <Checkbox checked={selectedIds.has(e.id)} onCheckedChange={() => toggleSelect(e.id)} aria-label="Select row" />
@@ -386,46 +410,34 @@ export default function ProductionLogs() {
                   <TableCell className="text-right">{e.quantity_per_roll}</TableCell>
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
+                  <TableCell className="text-right font-mono">{lengthMtr > 0 ? fmt(lengthMtr) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{sqm > 0 ? fmt(sqm) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{kg > 0 ? fmt(kg) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    {(() => {
-                      const parseNote = (label: string) => {
-                        if (!e.notes) return null;
-                        const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
-                        const m = e.notes.match(re);
-                        return m ? m[1] : null;
-                      };
-                      const hasLab =
-                        e.gsm != null || e.tensile_strength != null || e.elongation != null ||
-                        e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
-                        parseNote("GSM") || parseNote("Tensile") || parseNote("Elongation") ||
-                        parseNote("Swelling Height") || parseNote("Swelling Speed") || parseNote("Surface Resistance");
-                      return (
-                        <div className="flex justify-end gap-1">
-                          {hasLab && (
-                            <Button variant="ghost" size="icon" onClick={() => setLabEntry(e)} title="View Lab Report" className="text-primary hover:text-primary">
-                              <FlaskConical className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" onClick={() => setTotalsEntry(e)} title="View Totals" className="text-primary hover:text-primary">
-                            <Sigma className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex justify-end gap-1">
+                      {hasReport && (
+                        <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
 
       {/* Edit Dialog */}
       <Dialog open={!!editEntry} onOpenChange={(open) => !open && setEditEntry(null)}>
