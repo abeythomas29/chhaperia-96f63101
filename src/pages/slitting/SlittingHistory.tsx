@@ -9,8 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, History, Pencil, Trash2 } from "lucide-react";
+import { Loader2, History, Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+
+interface Head36Row {
+  id: string;
+  date: string;
+  rolls_taken: number;
+  rolls_produced: number;
+  roll_width_mm: number | null;
+  length_per_tape_mtr: number | null;
+  total_quantity: number | null;
+  unit: string;
+  notes: string | null;
+}
 
 interface SlittingRow {
   id: string;
