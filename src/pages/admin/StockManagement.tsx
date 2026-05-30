@@ -40,6 +40,7 @@ interface LedgerEntry {
   unit: string;
   notes: string | null;
   person: string | null;
+  source: "Production" | "Stock Issue" | "Sale";
 }
 
 interface Client {
