@@ -26,7 +26,7 @@ interface SlittingRow {
   unit: string;
   notes: string | null;
   slitting_manager_id: string;
-  product_codes: { code: string } | null;
+  product_codes: { code: string; category_id?: string | null } | null;
 }
 
 const parseNum = (notes: string | null, label: string): number => {
