@@ -156,10 +156,22 @@ export default function SlittingLogs() {
     })();
   }, []);
 
+      setLoading(false);
+    })();
+    (async () => {
+      const { data } = await supabase.from("product_categories").select("id, name").eq("status", "active").order("name");
+      setCategories(data ?? []);
+    })();
+  }, []);
+
   const products = Array.from(new Set(entries.map((e) => e.product_codes?.code).filter(Boolean))) as string[];
 
   const filtered = entries.filter((e) => {
     if (productFilter !== "all" && e.product_codes?.code !== productFilter) return false;
+    if (categoryFilter !== "all" && e.product_codes?.category_id !== categoryFilter) return false;
+    const d = new Date(e.date);
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
