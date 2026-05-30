@@ -42,13 +42,28 @@ export default function Head36Entry() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
+      const fullSelect = "id, date, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, product_codes(code, id)";
+      const basicSelect = "id, date, cut_quantity_produced, cut_width_mm, thickness_mm, unit, notes, product_codes(code, id)";
+      let { data, error } = await supabase
         .from("slitting_entries")
-        .select("id, date, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, product_codes(code, id)")
-        .eq("slitting_manager_id", user.id)
-        .order("date", { ascending: false })
-        .limit(50);
-      setSlittingEntries((data as unknown as SlittingRow[]) ?? []);
+        .select(fullSelect)
+        .order("date", { ascending: false });
+      if (error) {
+        const fb = await supabase
+          .from("slitting_entries")
+          .select(basicSelect)
+          .order("date", { ascending: false });
+        data = fb.data as any;
+      }
+      const rows = ((data as unknown as any[]) ?? []).map((r) => {
+        let gsm = r.gsm ?? null;
+        if (gsm == null && typeof r.notes === "string") {
+          const m = r.notes.match(/GSM\s*[:\-]\s*(\d+(?:\.\d+)?)/i);
+          if (m) gsm = parseFloat(m[1]);
+        }
+        return { ...r, gsm } as SlittingRow;
+      });
+      setSlittingEntries(rows);
       setLoading(false);
     })();
   }, [user]);
