@@ -156,8 +156,7 @@ export default function SlittingLogs() {
     })();
   }, []);
 
-      setLoading(false);
-    })();
+  useEffect(() => {
     (async () => {
       const { data } = await supabase.from("product_categories").select("id, name").eq("status", "active").order("name");
       setCategories(data ?? []);
