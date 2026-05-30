@@ -141,6 +141,13 @@ export default function StockManagement() {
       issueMap.set(pcId, (issueMap.get(pcId) ?? 0) + Number(i.quantity));
     }
 
+    // Include finished-product sales in issued totals (they reduce finished stock)
+    for (const s of (salesData ?? []) as any[]) {
+      if (s.item_type === "finished_product" && s.product_code_id) {
+        issueMap.set(s.product_code_id, (issueMap.get(s.product_code_id) ?? 0) + Number(s.quantity));
+      }
+    }
+
     const allPcIds = new Set([...pcTotals.keys(), ...issueMap.keys()]);
     const summaryList: StockSummary[] = [];
     for (const pcId of allPcIds) {
@@ -181,6 +188,7 @@ export default function StockManagement() {
         unit: p.unit,
         notes: null,
         person: p.profiles?.name ?? null,
+        source: "Production",
       });
     }
     for (const i of (issueData ?? []) as any[]) {
@@ -195,6 +203,23 @@ export default function StockManagement() {
         unit: i.unit,
         notes: i.notes,
         person: i.profiles?.name ?? null,
+        source: "Stock Issue",
+      });
+    }
+    for (const s of (salesData ?? []) as any[]) {
+      const code = s.product_codes?.code ?? (s.item_type === "raw_material" ? "Raw Material" : "—");
+      ledgerEntries.push({
+        id: s.id,
+        date: s.date,
+        type: "OUT",
+        product_code: code,
+        thickness_mm: s.thickness_mm != null ? Number(s.thickness_mm) : null,
+        client_name: s.company_clients?.name ?? s.client_name ?? "—",
+        quantity: Number(s.quantity),
+        unit: s.unit,
+        notes: s.notes,
+        person: s.profiles?.name ?? null,
+        source: "Sale",
       });
     }
     ledgerEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
