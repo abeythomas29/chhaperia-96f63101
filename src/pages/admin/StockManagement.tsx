@@ -99,6 +99,13 @@ export default function StockManagement() {
       .order("date", { ascending: false })
       .limit(1000);
 
+    // Fetch sales (OUT) – finished product sales also reduce stock and should appear in the ledger
+    const { data: salesData } = await supabase
+      .from("sales")
+      .select("id, date, product_code_id, item_type, quantity, unit, notes, thickness_mm, client_id, client_name, product_codes(code), company_clients(name), profiles:sold_by(name)")
+      .order("date", { ascending: false })
+      .limit(1000);
+
     // Fetch dropdowns
     const [{ data: cl }, { data: pc }] = await Promise.all([
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
