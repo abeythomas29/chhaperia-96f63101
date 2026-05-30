@@ -129,14 +129,31 @@ export default function SalesHistory() {
 
   const filtered = rows.filter((r) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       (r.item_name ?? "").toLowerCase().includes(q) ||
       (r.client_name ?? "").toLowerCase().includes(q) ||
-      (r.notes ?? "").toLowerCase().includes(q)
-    );
+      (r.notes ?? "").toLowerCase().includes(q);
+
+    let matchesDate = true;
+    if (dateFrom || dateTo) {
+      const d = new Date(r.date);
+      if (dateFrom && dateTo) {
+        matchesDate = isWithinInterval(d, { start: startOfDay(new Date(dateFrom)), end: endOfDay(new Date(dateTo)) });
+      } else if (dateFrom) {
+        matchesDate = d >= startOfDay(new Date(dateFrom));
+      } else if (dateTo) {
+        matchesDate = d <= endOfDay(new Date(dateTo));
+      }
+    }
+
+    const matchesCategory = categoryFilter === "all" || r.item_type === categoryFilter;
+
+    return matchesSearch && matchesDate && matchesCategory;
   });
 
   const totalRevenue = filtered.reduce((sum, r) => sum + Number(r.total_amount || 0), 0);
+
+  const activeFilterCount = [dateFrom, dateTo].filter(Boolean).length + (categoryFilter !== "all" ? 1 : 0);
 
   return (
     <div className="space-y-4">
