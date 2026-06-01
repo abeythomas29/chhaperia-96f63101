@@ -34,7 +34,9 @@ interface StockEntry {
   notes: string | null;
   added_by: string;
   created_at: string;
+  kind?: "in" | "out";
 }
+
 
 export default function RawMaterials() {
   const { user } = useAuth();
