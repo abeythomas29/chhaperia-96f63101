@@ -406,27 +406,35 @@ export default function RawMaterials() {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Material</TableHead>
-                <TableHead>Supplier</TableHead>
+                <TableHead>Supplier / Client</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Pallets</TableHead>
                 <TableHead className="text-right">Thickness</TableHead>
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
-                <TableHead>Added By</TableHead>
+                <TableHead>By</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No stock entries match your filters</TableCell></TableRow>
-              ) : filteredEntries.map((e) => (
+                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">No stock entries match your filters</TableCell></TableRow>
+              ) : filteredEntries.map((e) => {
+                const isOut = e.kind === "out";
+                return (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
+                  <TableCell>
+                    <Badge variant={isOut ? "destructive" : "default"}>{isOut ? "Out (Sale)" : "In"}</Badge>
+                  </TableCell>
                   <TableCell>{e.material_name}</TableCell>
                   <TableCell>{e.supplier ?? "—"}</TableCell>
-                  <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
+                  <TableCell className={`text-right font-mono ${isOut ? "text-destructive" : ""}`}>
+                    {isOut ? "−" : "+"}{Number(e.quantity).toLocaleString()}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.thickness_mm != null ? `${e.thickness_mm} mm` : "—"}</TableCell>
@@ -434,11 +442,19 @@ export default function RawMaterials() {
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEditEntry(e)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteEntryId(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    {isOut ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => openEditEntry(e)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteEntryId(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
+
             </TableBody>
           </Table>
         </CardContent>
