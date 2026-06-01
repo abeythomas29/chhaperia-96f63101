@@ -292,6 +292,15 @@ export default function SalesEntry() {
                   {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.code}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {productId && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {loadingAvailable
+                    ? "Checking available stock…"
+                    : productAvailable !== null
+                      ? `Available: ${productAvailable.toLocaleString()} ${unit}`
+                      : "Availability unknown"}
+                </p>
+              )}
             </div>
           )}
 
