@@ -36,6 +36,8 @@ export default function SalesEntry() {
   const [useManualClient, setUseManualClient] = useState(false);
   const [materialId, setMaterialId] = useState("");
   const [productId, setProductId] = useState("");
+  const [productAvailable, setProductAvailable] = useState<number | null>(null);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("kg");
   const [pricePerUnit, setPricePerUnit] = useState("");
