@@ -343,7 +343,7 @@ export default function ProductionEntry() {
               <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-semibold flex items-center gap-1"><Layers className="h-4 w-4" /> Multiple Thickness Rows</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setThicknessRows((r) => [...r, { thickness_mm: "", rolls_count: "", quantity_per_roll: "" }])}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setThicknessRows((r) => [...r, { thickness_mm: "", rolls_count: "", length_per_roll: "", width_per_roll: "" }])}>
                     <Plus className="h-3 w-3 mr-1" /> Add
                   </Button>
                 </div>
