@@ -130,10 +130,10 @@ export default function ProductionEntry() {
 
     const categoryName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
     const isRope = categoryName.includes("rope");
-    const validRopeRows = thicknessRows.filter((r) => r.thickness_mm && r.rolls_count && r.quantity_per_roll);
+    const validRopeRows = thicknessRows.filter((r) => r.thickness_mm && r.rolls_count && r.length_per_roll && r.width_per_roll);
     const useMultiThickness = isRope && validRopeRows.length > 0;
 
-    if (!useMultiThickness && (!form.rolls_count || !form.quantity_per_roll)) return;
+    if (!useMultiThickness && (!form.rolls_count || !form.length_per_roll || !form.width_per_roll)) return;
 
     setSubmitting(true);
 
@@ -158,7 +158,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(r.rolls_count),
-          quantity_per_roll: Number(r.quantity_per_roll),
+          quantity_per_roll: Number(r.length_per_roll) * Number(r.width_per_roll),
           unit: form.unit,
           thickness_mm: Number(r.thickness_mm),
           ...baseExtras,
@@ -168,7 +168,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(form.rolls_count),
-          quantity_per_roll: Number(form.quantity_per_roll),
+          quantity_per_roll: Number(form.length_per_roll) * Number(form.width_per_roll),
           unit: form.unit,
           ...(form.thickness_mm ? { thickness_mm: Number(form.thickness_mm) } : {}),
           ...baseExtras,
