@@ -434,15 +434,44 @@ export default function ProductionEntry() {
             </Select>
           </div>
 
-          {/* Copper Tape flags */}
+          {/* Copper Tape flags (semi-cond / water blocking tape — NOT fiber glass) */}
           {(() => {
             const catName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
-            const isCopperTape = catName.includes("copper") || catName.includes("semi cond") || catName.includes("water block");
+            const isFiberGlass = catName.includes("fiber") || catName.includes("fibre") || catName.includes("glass");
+            const isCopperTape = !isFiberGlass && (catName.includes("copper") || catName.includes("semi cond") || catName.includes("water block"));
             if (!isCopperTape) return null;
             return (
               <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
                 <Label className="text-sm font-semibold">Copper Tape Options</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Lab report prepared here?</Label>
+                  <Select value={form.lab_report_included ? "yes" : "no"}
+                    onValueChange={(v) => setForm({ ...form, lab_report_included: v === "yes" })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no">No</SelectItem>
+                      <SelectItem value="yes">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Fiber Glass Tape options */}
+          {(() => {
+            const catName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
+            const isFiberGlass = catName.includes("fiber") || catName.includes("fibre") || catName.includes("glass");
+            if (!isFiberGlass) return null;
+            return (
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                <Label className="text-sm font-semibold">Fiber Glass Tape Options</Label>
                 <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">No. of Copper Wires (woven)</Label>
+                    <Input type="number" min="0" step="1" value={form.copper_wire_count}
+                      onChange={(e) => setForm({ ...form, copper_wire_count: e.target.value })} placeholder="e.g. 12" />
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Raw material prepared here?</Label>
                     <Select value={form.raw_material_included ? "yes" : "no"}
@@ -454,16 +483,40 @@ export default function ProductionEntry() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Water Blocking Rope (CWR) options */}
+          {(() => {
+            const catName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
+            const code = productCodes.find((p) => p.id === form.product_code_id)?.code?.toUpperCase() ?? "";
+            const isCWR = code.startsWith("CWR") || (catName.includes("rope") && catName.includes("water"));
+            if (!isCWR) return null;
+            return (
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                <Label className="text-sm font-semibold">Water Blocking Rope (CWR)</Label>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Lab report prepared here?</Label>
-                    <Select value={form.lab_report_included ? "yes" : "no"}
-                      onValueChange={(v) => setForm({ ...form, lab_report_included: v === "yes" })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no">No</SelectItem>
-                        <SelectItem value="yes">Yes</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs">Diameter of Rope (mm)</Label>
+                    <Input type="number" min="0" step="0.0001" value={form.rope_diameter_mm}
+                      onChange={(e) => setForm({ ...form, rope_diameter_mm: e.target.value })} placeholder="e.g. 4.5" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">No. of Bundles</Label>
+                    <Input type="number" min="0" step="1" value={form.bundles_count}
+                      onChange={(e) => setForm({ ...form, bundles_count: e.target.value })} placeholder="e.g. 10" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Bundles per Pallet</Label>
+                    <Input type="number" min="0" step="1" value={form.bundles_per_pallet}
+                      onChange={(e) => setForm({ ...form, bundles_per_pallet: e.target.value })} placeholder="e.g. 20" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Weight per Pallet (kg)</Label>
+                    <Input type="number" min="0" step="0.0001" value={form.weight_per_pallet}
+                      onChange={(e) => setForm({ ...form, weight_per_pallet: e.target.value })} placeholder="e.g. 250" />
                   </div>
                 </div>
               </div>
