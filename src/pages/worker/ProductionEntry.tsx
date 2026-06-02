@@ -395,7 +395,7 @@ export default function ProductionEntry() {
               <Input type="number" min="0" step="0.0001" value={form.length_per_roll} onChange={(e) => setForm({ ...form, length_per_roll: e.target.value })} placeholder="0" />
             </div>
             <div>
-              <Label>Width / Roll</Label>
+              <Label>Width / Roll (mm)</Label>
               <Input type="number" min="0" step="0.0001" value={form.width_per_roll} onChange={(e) => setForm({ ...form, width_per_roll: e.target.value })} placeholder="0" />
             </div>
           </div>
