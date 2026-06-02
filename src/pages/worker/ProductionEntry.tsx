@@ -90,7 +90,8 @@ export default function ProductionEntry() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const qtyPerRoll = (Number(form.length_per_roll) || 0) * (Number(form.width_per_roll) || 0);
+  // Width is entered in millimeters; convert to meters for area calculations
+  const qtyPerRoll = (Number(form.length_per_roll) || 0) * ((Number(form.width_per_roll) || 0) / 1000);
   const totalQuantity = (Number(form.rolls_count) || 0) * qtyPerRoll;
 
   const filteredProductCodes = selectedCategory
@@ -158,7 +159,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(r.rolls_count),
-          quantity_per_roll: Number(r.length_per_roll) * Number(r.width_per_roll),
+          quantity_per_roll: Number(r.length_per_roll) * (Number(r.width_per_roll) / 1000),
           unit: form.unit,
           thickness_mm: Number(r.thickness_mm),
           ...baseExtras,
@@ -168,7 +169,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(form.rolls_count),
-          quantity_per_roll: Number(form.length_per_roll) * Number(form.width_per_roll),
+          quantity_per_roll: Number(form.length_per_roll) * (Number(form.width_per_roll) / 1000),
           unit: form.unit,
           ...(form.thickness_mm ? { thickness_mm: Number(form.thickness_mm) } : {}),
           ...baseExtras,
@@ -394,7 +395,7 @@ export default function ProductionEntry() {
               <Input type="number" min="0" step="0.0001" value={form.length_per_roll} onChange={(e) => setForm({ ...form, length_per_roll: e.target.value })} placeholder="0" />
             </div>
             <div>
-              <Label>Width / Roll</Label>
+              <Label>Width / Roll (mm)</Label>
               <Input type="number" min="0" step="0.0001" value={form.width_per_roll} onChange={(e) => setForm({ ...form, width_per_roll: e.target.value })} placeholder="0" />
             </div>
           </div>
@@ -463,7 +464,7 @@ export default function ProductionEntry() {
             const gsmVal = Number(form.gsm) || 0;
             const rolls = Number(form.rolls_count) || 0;
             const len = Number(form.length_per_roll) || 0;
-            const wid = Number(form.width_per_roll) || 0;
+            const wid = (Number(form.width_per_roll) || 0) / 1000; // mm -> m
             const sqm: number | null = rolls > 0 && len > 0 && wid > 0 ? rolls * len * wid : null;
             const mtr: number | null = rolls > 0 && len > 0 ? rolls * len : null;
             const kg: number | null = sqm !== null && gsmVal > 0 ? (sqm * gsmVal) / 1000 : null;
