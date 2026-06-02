@@ -169,7 +169,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(form.rolls_count),
-          quantity_per_roll: Number(form.length_per_roll) * Number(form.width_per_roll),
+          quantity_per_roll: Number(form.length_per_roll) * (Number(form.width_per_roll) / 1000),
           unit: form.unit,
           ...(form.thickness_mm ? { thickness_mm: Number(form.thickness_mm) } : {}),
           ...baseExtras,
