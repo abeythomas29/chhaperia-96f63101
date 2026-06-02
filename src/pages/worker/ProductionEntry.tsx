@@ -464,7 +464,7 @@ export default function ProductionEntry() {
             const gsmVal = Number(form.gsm) || 0;
             const rolls = Number(form.rolls_count) || 0;
             const len = Number(form.length_per_roll) || 0;
-            const wid = Number(form.width_per_roll) || 0;
+            const wid = (Number(form.width_per_roll) || 0) / 1000; // mm -> m
             const sqm: number | null = rolls > 0 && len > 0 && wid > 0 ? rolls * len * wid : null;
             const mtr: number | null = rolls > 0 && len > 0 ? rolls * len : null;
             const kg: number | null = sqm !== null && gsmVal > 0 ? (sqm * gsmVal) / 1000 : null;
