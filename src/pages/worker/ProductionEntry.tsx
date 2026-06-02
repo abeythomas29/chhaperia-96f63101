@@ -90,7 +90,8 @@ export default function ProductionEntry() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const totalQuantity = (Number(form.rolls_count) || 0) * (Number(form.quantity_per_roll) || 0);
+  const qtyPerRoll = (Number(form.length_per_roll) || 0) * (Number(form.width_per_roll) || 0);
+  const totalQuantity = (Number(form.rolls_count) || 0) * qtyPerRoll;
 
   const filteredProductCodes = selectedCategory
     ? productCodes.filter((p) => p.category_id === selectedCategory)
