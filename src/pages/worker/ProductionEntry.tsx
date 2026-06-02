@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { UNIT_OPTIONS } from "@/lib/units";
 
-interface ThicknessRow { thickness_mm: string; rolls_count: string; quantity_per_roll: string; }
+interface ThicknessRow { thickness_mm: string; rolls_count: string; length_per_roll: string; width_per_roll: string; }
 
 interface MaterialUsageRow {
   raw_material_id: string;
