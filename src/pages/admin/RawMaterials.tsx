@@ -433,7 +433,7 @@ export default function RawMaterials() {
                   <TableCell>{e.material_name}</TableCell>
                   <TableCell>{e.supplier ?? "—"}</TableCell>
                   <TableCell className={`text-right font-mono ${isOut ? "text-destructive" : ""}`}>
-                    {isOut ? "−" : "+"}{Number(e.quantity).toLocaleString()}
+                    {isOut ? "−" : "+"}{Number(e.quantity).toLocaleString()} {e.material_unit}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
