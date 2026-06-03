@@ -724,11 +724,7 @@ export type Database = {
       repair_admin_lockout: { Args: never; Returns: undefined }
     }
     Enums: {
-      signup_department:
-        | "worker"
-        | "inventory_manager"
-        | "slitting_manager"
-        | "admin"
+      signup_department: "worker" | "inventory_manager" | "slitting_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -856,12 +852,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      signup_department: [
-        "worker",
-        "inventory_manager",
-        "slitting_manager",
-        "admin",
-      ],
+      signup_department: ["worker", "inventory_manager", "slitting_manager"],
     },
   },
 } as const
