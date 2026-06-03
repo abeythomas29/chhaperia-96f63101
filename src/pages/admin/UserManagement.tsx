@@ -85,6 +85,97 @@ export default function UserManagement() {
 
   useEffect(() => { fetchUsers(); }, []);
 
+  const createUser = async () => {
+    if (!createForm.name || !createForm.employee_id || !createForm.username || !createForm.password) {
+      toast({ title: "Missing details", description: "Fill in all user fields before creating the account.", variant: "destructive" });
+      return;
+    }
+
+    if (createRoles.length === 0) {
+      toast({ title: "Missing roles", description: "Assign at least one role to the new user.", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: {
+        name: createForm.name,
+        employee_id: createForm.employee_id,
+        email: createForm.username,
+        password: createForm.password,
+        requested_department: createForm.requested_department,
+        roles: createRoles,
+      },
+    });
+
+    if (error || data?.error) {
+      toast({ title: "Error creating user", description: data?.error ?? error?.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    setCreateDialogOpen(false);
+    setCreateForm(emptyCreateForm);
+    setCreateRoles(["worker"]);
+    toast({ title: "User created successfully" });
+    setSubmitting(false);
+    fetchUsers();
+  };
+
+  const openCreate = () => {
+    setCreateForm(emptyCreateForm);
+    setCreateRoles(["worker"]);
+    setCreateDialogOpen(true);
+  };
+
+  const attemptAdminRepair = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const user = sessionData.session?.user;
+      const email = user?.email?.toLowerCase();
+
+      if (!token || !user || email !== "admin@chhaperia.com") {
+        return false;
+      }
+
+      const repairClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      });
+
+      await repairClient.from("profiles").upsert(
+        {
+          user_id: user.id,
+          name: "Super Admin",
+          employee_id: "ADMIN",
+          username: user.email ?? "admin@chhaperia.com",
+          requested_department: "worker",
+          status: "active",
+        },
+        { onConflict: "user_id" },
+      );
+
+      await repairClient.from("user_roles").upsert(
+        { user_id: user.id, role: "super_admin" } as any,
+        { onConflict: "user_id,role" },
+      );
+
+      const { data: adminCheck } = await repairClient.rpc("is_admin", { _user_id: user.id });
+      return !!adminCheck;
+    } catch {
+      return false;
+    }
+  };
+
   const openEdit = (user: UserRow) => {
     setSelectedUser(user);
     setEditForm({ name: user.name, employee_id: user.employee_id, username: user.username });
