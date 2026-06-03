@@ -23,24 +23,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRoles = async (userId: string, retries = 3) => {
+  const SUPER_ADMIN_EMAILS = ["admin@chhaperia.com"];
+
+  const ensureSuperAdminRole = async (userId: string) => {
+    const { data: existing } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "super_admin")
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("user_roles").insert({ user_id: userId, role: "super_admin" });
+    }
+  };
+
+  const fetchRoles = async (userId: string, email: string | null | undefined, retries = 3) => {
+    const isKnownSuperAdmin = !!email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase());
+
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
+
     if (data && data.length > 0) {
       const userRoles = data.map((r) => r.role);
       setRoles(userRoles);
       const priority = ["super_admin", "admin", "worker", "inventory_manager", "slitting_manager"];
       const primary = priority.find((p) => userRoles.includes(p)) ?? userRoles[0];
       setRole(primary);
-    } else if (retries > 0) {
-      setTimeout(() => fetchRoles(userId, retries - 1), 1000);
+      return;
+    }
+
+    if (isKnownSuperAdmin) {
+      await ensureSuperAdminRole(userId);
+      setRoles(["super_admin"]);
+      setRole("super_admin");
+      return;
+    }
+
+    if (retries > 0) {
+      setTimeout(() => fetchRoles(userId, email, retries - 1), 1000);
     } else {
       setRole("pending");
       setRoles([]);
     }
   };
+
 
   const fetchProfile = async (userId: string, retries = 3) => {
     const { data } = await supabase
