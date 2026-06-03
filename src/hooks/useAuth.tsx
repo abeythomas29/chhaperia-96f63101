@@ -38,8 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (retries > 0) {
       setTimeout(() => fetchRoles(userId, retries - 1), 1000);
     } else {
-      setRole("pending");
-      setRoles([]);
+      // No role assigned — default to worker (Production Manager) access
+      setRole("worker");
+      setRoles(["worker"]);
     }
   };
 
