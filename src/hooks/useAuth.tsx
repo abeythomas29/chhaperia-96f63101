@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: roles.includes("admin") || roles.includes("super_admin"),
         isSuperAdmin: roles.includes("super_admin"),
         isWorker: roles.includes("worker"),
-        isPending: role === "pending" || (roles.length === 0 && !loading),
+        isPending: false,
         isInventoryManager: roles.includes("inventory_manager"),
         isSlittingManager: roles.includes("slitting_manager"),
         hasRole,
