@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-
   const fetchRoles = async (userId: string, retries = 3) => {
     const { data } = await supabase
       .from("user_roles")
@@ -38,9 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (retries > 0) {
       setTimeout(() => fetchRoles(userId, retries - 1), 1000);
     } else {
-      // No role assigned — default to worker (Production Manager) access
-      setRole("worker");
-      setRoles(["worker"]);
+      setRole("pending");
+      setRoles([]);
     }
   };
 
@@ -160,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: roles.includes("admin") || roles.includes("super_admin"),
         isSuperAdmin: roles.includes("super_admin"),
         isWorker: roles.includes("worker"),
-        isPending: false,
+        isPending: role === "pending" || (roles.length === 0 && !loading),
         isInventoryManager: roles.includes("inventory_manager"),
         isSlittingManager: roles.includes("slitting_manager"),
         hasRole,
