@@ -57,6 +57,7 @@ export default function ProductionEntry() {
     lab_report_included: false,
     raw_material_included: false,
     copper_wire_count: "",
+    copper_woven: false,
     rope_diameter_mm: "",
     bundles_count: "",
     bundles_per_pallet: "",
