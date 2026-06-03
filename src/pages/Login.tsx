@@ -32,7 +32,7 @@ export default function Login() {
   const [signupEmployeeId, setSignupEmployeeId] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
-  const [signupDepartment, setSignupDepartment] = useState<"worker" | "inventory_manager" | "slitting_manager">("worker");
+  const [signupDepartment, setSignupDepartment] = useState<"worker" | "inventory_manager" | "slitting_manager" | "admin">("worker");
   const [submitting, setSubmitting] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const { toast } = useToast();
