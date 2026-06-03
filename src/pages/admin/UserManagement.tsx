@@ -70,7 +70,7 @@ export default function UserManagement() {
   const [newPassword, setNewPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "" });
-  const [createForm, setCreateForm] = useState(emptyCreateForm);
+  const [createForm, setCreateForm] = useState(() => ({ ...emptyCreateForm }));
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -126,7 +126,7 @@ export default function UserManagement() {
     }
 
     setCreateDialogOpen(false);
-    setCreateForm(emptyCreateForm);
+    setCreateForm({ ...emptyCreateForm });
     setCreateRoles(["worker"]);
     toast({ title: "User created successfully" });
     setSubmitting(false);
@@ -134,7 +134,7 @@ export default function UserManagement() {
   };
 
   const openCreate = () => {
-    setCreateForm(emptyCreateForm);
+    setCreateForm({ ...emptyCreateForm });
     setCreateRoles(["worker"]);
     setCreateDialogOpen(true);
   };
