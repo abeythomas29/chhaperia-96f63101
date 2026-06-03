@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import { createClient } from "@supabase/supabase-js";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Trash2, KeyRound, UserCheck } from "lucide-react";
+import { Pencil, Trash2, KeyRound, UserCheck, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const departmentLabels: Record<string, string> = {
   worker: "Production Manager",
@@ -45,17 +49,28 @@ interface UserRow {
   requested_department: string;
 }
 
+const emptyCreateForm = {
+  name: "",
+  employee_id: "",
+  username: "",
+  password: "",
+  requested_department: "worker",
+};
+
 export default function UserManagement() {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approveRoles, setApproveRoles] = useState<string[]>(["worker"]);
   const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [createRoles, setCreateRoles] = useState<string[]>(["worker"]);
   const [newPassword, setNewPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "" });
+  const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
