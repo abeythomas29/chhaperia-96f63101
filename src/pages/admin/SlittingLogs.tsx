@@ -10,7 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, Scissors, Search, Trash2, Layers, CalendarIcon, FileText } from "lucide-react";
+import { Loader2, Scissors, Search, Trash2, Layers, CalendarIcon, FileText, Pencil } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,91 @@ export default function SlittingLogs() {
   const [reportEntry, setReportEntry] = useState<SlittingRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editEntry, setEditEntry] = useState<SlittingRow | null>(null);
+  const [editForm, setEditForm] = useState({ date: "", cut_width_mm: "", cut_quantity_produced: "", thickness_mm: "", gsm: "", notes: "" });
+  const [saving, setSaving] = useState(false);
+  const [editH36, setEditH36] = useState<Head36Row | null>(null);
+  const [editH36Form, setEditH36Form] = useState({ date: "", rolls_taken: "", rolls_produced: "", roll_width_mm: "", length_per_tape_mtr: "", thickness_mm: "", gsm: "", notes: "" });
+  const [savingH36, setSavingH36] = useState(false);
   const { toast } = useToast();
+
+  const openEdit = (e: SlittingRow) => {
+    setEditEntry(e);
+    setEditForm({
+      date: e.date,
+      cut_width_mm: String(e.cut_width_mm ?? ""),
+      cut_quantity_produced: String(e.cut_quantity_produced ?? ""),
+      thickness_mm: e.thickness_mm != null ? String(e.thickness_mm) : "",
+      gsm: e.gsm != null ? String(e.gsm) : "",
+      notes: e.notes ?? "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editEntry) return;
+    setSaving(true);
+    const payload: any = {
+      date: editForm.date,
+      cut_width_mm: Number(editForm.cut_width_mm),
+      cut_quantity_produced: Number(editForm.cut_quantity_produced),
+      thickness_mm: editForm.thickness_mm ? Number(editForm.thickness_mm) : null,
+      notes: editForm.notes || null,
+    };
+    if (editForm.gsm) payload.gsm = Number(editForm.gsm);
+    const { error } = await supabase.from("slitting_entries").update(payload).eq("id", editEntry.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      setEntries((prev) => prev.map((r) => r.id === editEntry.id ? { ...r, ...payload } as SlittingRow : r));
+      setEditEntry(null);
+      toast({ title: "Entry updated" });
+    }
+  };
+
+  const openEditH36 = (h: Head36Row) => {
+    setEditH36(h);
+    setEditH36Form({
+      date: h.date,
+      rolls_taken: String(h.rolls_taken ?? ""),
+      rolls_produced: String(h.rolls_produced ?? ""),
+      roll_width_mm: h.roll_width_mm != null ? String(h.roll_width_mm) : "",
+      length_per_tape_mtr: h.length_per_tape_mtr != null ? String(h.length_per_tape_mtr) : "",
+      thickness_mm: h.thickness_mm != null ? String(h.thickness_mm) : "",
+      gsm: h.gsm != null ? String(h.gsm) : "",
+      notes: h.notes ?? "",
+    });
+  };
+
+  const handleSaveH36 = async () => {
+    if (!editH36) return;
+    setSavingH36(true);
+    const payload: any = {
+      date: editH36Form.date,
+      rolls_taken: Number(editH36Form.rolls_taken),
+      rolls_produced: Number(editH36Form.rolls_produced),
+      roll_width_mm: editH36Form.roll_width_mm ? Number(editH36Form.roll_width_mm) : null,
+      length_per_tape_mtr: editH36Form.length_per_tape_mtr ? Number(editH36Form.length_per_tape_mtr) : null,
+      thickness_mm: editH36Form.thickness_mm ? Number(editH36Form.thickness_mm) : null,
+      gsm: editH36Form.gsm ? Number(editH36Form.gsm) : null,
+      notes: editH36Form.notes || null,
+    };
+    const { error } = await supabase.from("head36_entries" as any).update(payload).eq("id", editH36.id);
+    setSavingH36(false);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      setHead36ByEntry((prev) => {
+        const next: Record<string, Head36Row[]> = {};
+        Object.entries(prev).forEach(([k, list]) => {
+          next[k] = list.map((r) => r.id === editH36.id ? { ...r, ...payload } as Head36Row : r);
+        });
+        return next;
+      });
+      setEditH36(null);
+      toast({ title: "36 Head entry updated" });
+    }
+  };
 
   const handleDelete = async (id: string) => {
     setDeleting(true);
@@ -334,6 +419,9 @@ export default function SlittingLogs() {
                           <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
                             <FileText className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -395,7 +483,12 @@ export default function SlittingLogs() {
                       <div key={h.id} className="border rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">{format(new Date(h.date), "dd/MM/yy")}</span>
-                          <span className="text-xs text-muted-foreground">{head36Operators[h.operator_id] ?? "—"}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{head36Operators[h.operator_id] ?? "—"}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditH36(h)} title="Edit">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                           <div><span className="text-muted-foreground">Rolls Taken:</span> <span className="font-mono">{h.rolls_taken}</span></div>
@@ -472,6 +565,95 @@ export default function SlittingLogs() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Slitting Entry</DialogTitle>
+              <DialogDescription>Update details including the date for this slitting entry.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Cut Width (mm)</Label>
+                  <Input type="number" step="any" value={editForm.cut_width_mm} onChange={(e) => setEditForm({ ...editForm, cut_width_mm: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Length (mtr)</Label>
+                  <Input type="number" step="any" value={editForm.cut_quantity_produced} onChange={(e) => setEditForm({ ...editForm, cut_quantity_produced: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Thickness (mm)</Label>
+                  <Input type="number" step="any" value={editForm.thickness_mm} onChange={(e) => setEditForm({ ...editForm, thickness_mm: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>GSM</Label>
+                  <Input type="number" step="any" value={editForm.gsm} onChange={(e) => setEditForm({ ...editForm, gsm: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Input value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditEntry(null)}>Cancel</Button>
+              <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editH36} onOpenChange={(o) => !o && setEditH36(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit 36 Head Entry</DialogTitle>
+              <DialogDescription>Update details including the date for this 36 head production entry.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={editH36Form.date} onChange={(e) => setEditH36Form({ ...editH36Form, date: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Rolls Taken</Label>
+                  <Input type="number" step="any" value={editH36Form.rolls_taken} onChange={(e) => setEditH36Form({ ...editH36Form, rolls_taken: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rolls Produced</Label>
+                  <Input type="number" step="any" value={editH36Form.rolls_produced} onChange={(e) => setEditH36Form({ ...editH36Form, rolls_produced: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tape Width (mm)</Label>
+                  <Input type="number" step="any" value={editH36Form.roll_width_mm} onChange={(e) => setEditH36Form({ ...editH36Form, roll_width_mm: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Length/Tape (mtr)</Label>
+                  <Input type="number" step="any" value={editH36Form.length_per_tape_mtr} onChange={(e) => setEditH36Form({ ...editH36Form, length_per_tape_mtr: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Thickness (mm)</Label>
+                  <Input type="number" step="any" value={editH36Form.thickness_mm} onChange={(e) => setEditH36Form({ ...editH36Form, thickness_mm: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>GSM</Label>
+                  <Input type="number" step="any" value={editH36Form.gsm} onChange={(e) => setEditH36Form({ ...editH36Form, gsm: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Input value={editH36Form.notes} onChange={(e) => setEditH36Form({ ...editH36Form, notes: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditH36(null)}>Cancel</Button>
+              <Button onClick={handleSaveH36} disabled={savingH36}>{savingH36 ? "Saving..." : "Save Changes"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </CardContent>
     </Card>
