@@ -137,23 +137,30 @@ export default function Head36Entry() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Source Slitting Entry *</Label>
-            <Select value={form.slitting_entry_id} onValueChange={(v) => setForm({ ...form, slitting_entry_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Choose source rolls" /></SelectTrigger>
-              <SelectContent>
-                {slittingEntries.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {format(new Date(e.date), "dd/MM/yy")} — {e.product_codes?.code ?? "—"} — {e.cut_width_mm}mm — {e.cut_quantity_produced} {e.unit}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {source && (
-              <p className="text-xs text-muted-foreground">
-                Thickness: {source.thickness_mm ?? "—"} mm · GSM: {source.gsm ?? "—"} (from slitting entry)
-              </p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
+            <div className="space-y-2">
+              <Label>Source Slitting Entry *</Label>
+              <Select value={form.slitting_entry_id} onValueChange={(v) => setForm({ ...form, slitting_entry_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Choose source rolls" /></SelectTrigger>
+                <SelectContent>
+                  {slittingEntries.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {format(new Date(e.date), "dd/MM/yy")} — {e.product_codes?.code ?? "—"} — {e.cut_width_mm}mm — {e.cut_quantity_produced} {e.unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {source && (
+                <p className="text-xs text-muted-foreground">
+                  Thickness: {source.thickness_mm ?? "—"} mm · GSM: {source.gsm ?? "—"} (from slitting entry)
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Date *</Label>
+              <Input type="date" value={form.entry_date}
+                onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
