@@ -27,7 +27,7 @@ export default function MaterialReturn() {
   const [returns, setReturns] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ slitting_entry_id: "", returned_quantity: "", unit: "meters", notes: "" });
+  const [form, setForm] = useState({ slitting_entry_id: "", entry_date: new Date().toISOString().slice(0, 10), returned_quantity: "", unit: "meters", notes: "" });
 
   const load = async () => {
     if (!user) return;
