@@ -22,7 +22,7 @@ export default function SlittingEntryForm() {
   const [submitting, setSubmitting] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(true);
   const [rollsOpen, setRollsOpen] = useState(true);
-  const [rollRows, setRollRows] = useState<RollRow[]>([{ width_mm: "", rolls_count: "" }]);
+  const [rollRows, setRollRows] = useState<RollRow[]>([{ width_mm: "", times_cut: "", rolls_per_cut: "" }]);
 
   const [form, setForm] = useState({
     product_code_id: "",
