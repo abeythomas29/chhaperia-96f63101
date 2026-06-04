@@ -24,6 +24,14 @@ interface Head36Row {
   notes: string | null;
 }
 
+interface ReturnRow {
+  id: string;
+  date: string;
+  returned_quantity: number;
+  unit: string;
+  notes: string | null;
+}
+
 interface SlittingRow {
   id: string;
   date: string;
@@ -67,6 +75,7 @@ export default function SlittingHistory() {
   const [deleting, setDeleting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [head36Map, setHead36Map] = useState<Record<string, Head36Row[]>>({});
+  const [returnsMap, setReturnsMap] = useState<Record<string, ReturnRow[]>>({});
   const [loadingHead36, setLoadingHead36] = useState<string | null>(null);
   const [reportEntry, setReportEntry] = useState<SlittingRow | null>(null);
 
@@ -76,14 +85,22 @@ export default function SlittingHistory() {
       return;
     }
     setExpandedId(entryId);
-    if (!head36Map[entryId]) {
+    if (!head36Map[entryId] || !returnsMap[entryId]) {
       setLoadingHead36(entryId);
-      const { data } = await supabase
-        .from("head36_entries" as any)
-        .select("id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, total_quantity, unit, notes")
-        .eq("slitting_entry_id", entryId)
-        .order("date", { ascending: false });
-      setHead36Map((m) => ({ ...m, [entryId]: ((data as unknown) as Head36Row[]) ?? [] }));
+      const [h36Res, retRes] = await Promise.all([
+        supabase
+          .from("head36_entries" as any)
+          .select("id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, total_quantity, unit, notes")
+          .eq("slitting_entry_id", entryId)
+          .order("date", { ascending: false }),
+        supabase
+          .from("slitting_returns" as any)
+          .select("id, date, returned_quantity, unit, notes")
+          .eq("slitting_entry_id", entryId)
+          .order("date", { ascending: false }),
+      ]);
+      setHead36Map((m) => ({ ...m, [entryId]: ((h36Res.data as unknown) as Head36Row[]) ?? [] }));
+      setReturnsMap((m) => ({ ...m, [entryId]: ((retRes.data as unknown) as ReturnRow[]) ?? [] }));
       setLoadingHead36(null);
     }
   };
@@ -215,6 +232,8 @@ export default function SlittingHistory() {
                   const displayNotes = (e.notes ?? "").split("|").map((s) => s.trim()).filter((s) => s && !/^gsm\s*[:\-]/i.test(s)).join(" | ");
                   const isExpanded = expandedId === e.id;
                   const head36 = head36Map[e.id] ?? [];
+                  const returns = returnsMap[e.id] ?? [];
+                  const totalReturned = returns.reduce((s, r) => s + (r.returned_quantity || 0), 0);
                   return (
                     <Fragment key={e.id}>
                     {/* main row */}
@@ -277,6 +296,39 @@ export default function SlittingHistory() {
                                     <TableCell className="text-xs">{h.length_per_tape_mtr ?? "—"}</TableCell>
                                     <TableCell className="text-xs text-right font-mono">{h.total_quantity ?? ((h.length_per_tape_mtr ?? 0) * h.rolls_produced)} {h.unit}</TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{h.notes ?? "—"}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+
+                          <div className="text-xs font-semibold mt-4 mb-2 text-muted-foreground">
+                            Material Returns for this slitting entry
+                            {returns.length > 0 && (
+                              <span className="ml-2 font-mono text-foreground">
+                                (Total: {totalReturned.toLocaleString(undefined, { maximumFractionDigits: 2 })} {returns[0]?.unit ?? ""})
+                              </span>
+                            )}
+                          </div>
+                          {loadingHead36 === e.id ? null : returns.length === 0 ? (
+                            <p className="text-muted-foreground text-xs italic py-2">No material returns recorded for this slitting entry yet.</p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-xs">Date</TableHead>
+                                  <TableHead className="text-xs text-right">Returned Qty</TableHead>
+                                  <TableHead className="text-xs">Unit</TableHead>
+                                  <TableHead className="text-xs">Notes</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {returns.map((r) => (
+                                  <TableRow key={r.id}>
+                                    <TableCell className="text-xs">{format(new Date(r.date), "dd/MM/yy")}</TableCell>
+                                    <TableCell className="text-xs text-right font-mono">{r.returned_quantity}</TableCell>
+                                    <TableCell className="text-xs">{r.unit}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{r.notes ?? "—"}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
