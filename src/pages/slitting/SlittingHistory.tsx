@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, History, Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, History, Pencil, Trash2, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 interface Head36Row {
