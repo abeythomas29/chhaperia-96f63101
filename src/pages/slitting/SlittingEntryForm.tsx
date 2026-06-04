@@ -26,6 +26,7 @@ export default function SlittingEntryForm() {
 
   const [form, setForm] = useState({
     product_code_id: "",
+    entry_date: new Date().toISOString().slice(0, 10),
     // Source product
     source_width_mm: "",
     source_length_mtr: "",
@@ -118,6 +119,7 @@ export default function SlittingEntryForm() {
         unit: form.unit,
         notes: [form.notes, `Roll ${idx + 1} of ${validRollRows.length}`, sourceNote, `Cuts: ${tc} × ${rpc} rolls/cut`, rollLength ? `RollLength: ${rollLength}m` : "", form.source_gsm ? `GSM: ${form.source_gsm}` : ""].filter(Boolean).join(" | "),
         slitting_manager_id: user.id,
+        created_at: form.entry_date ? new Date(form.entry_date + "T12:00:00").toISOString() : new Date().toISOString(),
       };
     });
 
@@ -153,14 +155,21 @@ export default function SlittingEntryForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Product Code *</Label>
-            <Select value={form.product_code_id} onValueChange={(v) => setForm({ ...form, product_code_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Select product code" /></SelectTrigger>
-              <SelectContent>
-                {productCodes.map((pc) => <SelectItem key={pc.id} value={pc.id}>{pc.code}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
+            <div className="space-y-2">
+              <Label>Product Code *</Label>
+              <Select value={form.product_code_id} onValueChange={(v) => setForm({ ...form, product_code_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select product code" /></SelectTrigger>
+                <SelectContent>
+                  {productCodes.map((pc) => <SelectItem key={pc.id} value={pc.id}>{pc.code}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Date *</Label>
+              <Input type="date" value={form.entry_date}
+                onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
+            </div>
           </div>
 
           {/* Source Product */}
