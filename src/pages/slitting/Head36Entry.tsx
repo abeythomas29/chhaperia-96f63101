@@ -121,7 +121,7 @@ export default function Head36Entry() {
       toast({ title: "Error", description, variant: "destructive" });
     } else {
       toast({ title: "36 Head entry saved" });
-      setForm({ ...form, rolls_taken: "", rolls_produced: "", roll_width_mm: "", length_per_tape_mtr: "", notes: "" });
+      setForm({ ...form, rolls_taken: "", times_cut: "", rolls_per_cut: "", roll_width_mm: "", length_per_tape_mtr: "", notes: "" });
     }
     setSubmitting(false);
   };
