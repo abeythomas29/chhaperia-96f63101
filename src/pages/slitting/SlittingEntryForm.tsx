@@ -234,23 +234,38 @@ export default function SlittingEntryForm() {
               <p className="text-xs text-muted-foreground">
                 Add one row per roll width. Use multiple rows if some rolls came narrower than required.
               </p>
-              {rollRows.map((r, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Roll {idx + 1} Width (mm)</Label>
-                    <Input type="number" step="any" value={r.width_mm}
-                      onChange={(e) => updateRollRow(idx, { width_mm: e.target.value })} />
+              {rollRows.map((r, idx) => {
+                const tc = parseFloat(r.times_cut) || 0;
+                const rpc = parseFloat(r.rolls_per_cut) || 0;
+                const rolls = tc * rpc;
+                return (
+                  <div key={idx} className="space-y-2 border-l-2 pl-3">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Roll {idx + 1} Width (mm)</Label>
+                        <Input type="number" step="any" value={r.width_mm}
+                          onChange={(e) => updateRollRow(idx, { width_mm: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Times Cut</Label>
+                        <Input type="number" step="any" value={r.times_cut}
+                          onChange={(e) => updateRollRow(idx, { times_cut: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Rolls per Cutting</Label>
+                        <Input type="number" step="any" value={r.rolls_per_cut}
+                          onChange={(e) => updateRollRow(idx, { rolls_per_cut: e.target.value })} />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeRollRow(idx)} disabled={rollRows.length === 1}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {rolls > 0 && (
+                      <p className="text-xs text-muted-foreground">Total rolls: <span className="font-semibold text-foreground">{rolls.toLocaleString()}</span> ({tc} × {rpc})</p>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">No. of Rolls</Label>
-                    <Input type="number" step="any" value={r.rolls_count}
-                      onChange={(e) => updateRollRow(idx, { rolls_count: e.target.value })} />
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeRollRow(idx)} disabled={rollRows.length === 1}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
               <Button type="button" variant="outline" size="sm" onClick={addRollRow}>
                 <Plus className="h-4 w-4 mr-1" /> Add Roll
               </Button>
