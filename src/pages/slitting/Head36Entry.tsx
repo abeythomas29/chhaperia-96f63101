@@ -27,11 +27,13 @@ export default function Head36Entry() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [slittingEntries, setSlittingEntries] = useState<SlittingRow[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     slitting_entry_id: "",
+    client_id: "",
     entry_date: new Date().toISOString().slice(0, 10),
     rolls_taken: "",
     times_cut: "",
@@ -41,6 +43,7 @@ export default function Head36Entry() {
     unit: "meters",
     notes: "",
   });
+
 
   useEffect(() => {
     if (!user) return;
