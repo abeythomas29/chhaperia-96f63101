@@ -29,7 +29,9 @@ export default function SlittingEntryForm() {
 
   const [form, setForm] = useState({
     product_code_id: "",
+    client_id: "",
     entry_date: new Date().toISOString().slice(0, 10),
+
     // Source product
     source_width_mm: "",
     source_length_mtr: "",
