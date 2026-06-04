@@ -62,17 +62,18 @@ export default function SlittingEntryForm() {
 
   // Output rolls calculations
   const rollLength = parseFloat(form.roll_length_mtr) || 0;
-  const validRollRows = rollRows.filter((r) => parseFloat(r.width_mm) > 0 && parseFloat(r.rolls_count) > 0);
-  const totalRolls = validRollRows.reduce((s, r) => s + (parseFloat(r.rolls_count) || 0), 0);
+  const rowRolls = (r: RollRow) => (parseFloat(r.times_cut) || 0) * (parseFloat(r.rolls_per_cut) || 0);
+  const validRollRows = rollRows.filter((r) => parseFloat(r.width_mm) > 0 && rowRolls(r) > 0);
+  const totalRolls = validRollRows.reduce((s, r) => s + rowRolls(r), 0);
   const totalLength = rollLength * totalRolls;
   const totalSqm = rollLength
-    ? validRollRows.reduce((s, r) => s + (parseFloat(r.width_mm) * rollLength / 1000) * parseFloat(r.rolls_count), 0)
+    ? validRollRows.reduce((s, r) => s + (parseFloat(r.width_mm) * rollLength / 1000) * rowRolls(r), 0)
     : 0;
   const totalKg = srcGsm > 0 && totalSqm > 0 ? (totalSqm * srcGsm) / 1000 : 0;
 
   const updateRollRow = (i: number, patch: Partial<RollRow>) =>
     setRollRows((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  const addRollRow = () => setRollRows((rows) => [...rows, { width_mm: "", rolls_count: "" }]);
+  const addRollRow = () => setRollRows((rows) => [...rows, { width_mm: "", times_cut: "", rolls_per_cut: "" }]);
   const removeRollRow = (i: number) => setRollRows((rows) => rows.filter((_, idx) => idx !== i));
 
   // Area (sqm) is conserved when slitting — total meters can be more than source
