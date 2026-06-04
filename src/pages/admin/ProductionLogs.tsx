@@ -417,6 +417,13 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-mono">{kg > 0 ? fmt(kg) : "—"}</TableCell>
                   <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {e.raw_material_usage && e.raw_material_usage.length > 0
+                      ? e.raw_material_usage.map((u, i) => (
+                          <div key={i}>{u.raw_materials?.name ?? "—"}: {u.quantity_used} {u.raw_materials?.unit ?? ""}</div>
+                        ))
+                      : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
