@@ -426,6 +426,9 @@ export default function SlittingHistory() {
                 const m = reportEntry.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
                 return m ? m[1] : null;
               };
+              const returns = returnsMap[reportEntry.id] ?? [];
+              const totalReturned = returns.reduce((s, r) => s + (r.returned_quantity || 0), 0);
+              const returnUnit = returns[0]?.unit ?? "";
               const pairs: [string, string | null][] = [
                 ["GSM", reportEntry.gsm != null ? String(reportEntry.gsm) : note("GSM")],
                 ["Thickness (mm)", reportEntry.thickness_mm != null ? String(reportEntry.thickness_mm) : note("Thickness")],
@@ -434,6 +437,7 @@ export default function SlittingHistory() {
                 ["Swelling Height", note("Swelling Height")],
                 ["Swelling Speed", note("Swelling Speed")],
                 ["Surface Resistance", note("Surface Resistance")],
+                ["Returned Material", totalReturned > 0 ? `${totalReturned.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${returnUnit}`.trim() : null],
               ];
               return (
                 <div className="divide-y border rounded-md">
