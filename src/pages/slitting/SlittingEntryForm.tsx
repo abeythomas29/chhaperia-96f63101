@@ -12,12 +12,15 @@ import { Loader2, Scissors, Plus, Trash2, ChevronDown, Layers, Package } from "l
 import { UNIT_OPTIONS } from "@/lib/units";
 
 interface ProductCode { id: string; code: string; category_id: string; }
+interface Client { id: string; name: string; }
 interface RollRow { width_mm: string; times_cut: string; rolls_per_cut: string; }
 
 export default function SlittingEntryForm() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(true);
