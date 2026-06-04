@@ -139,7 +139,7 @@ export default function SlittingEntryForm() {
         source_gsm: "", source_thickness_mm: "",
         roll_length_mtr: "", notes: "",
       });
-      setRollRows([{ width_mm: "", rolls_count: "" }]);
+      setRollRows([{ width_mm: "", times_cut: "", rolls_per_cut: "" }]);
     }
     setSubmitting(false);
   };
