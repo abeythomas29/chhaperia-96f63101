@@ -29,6 +29,7 @@ interface HistoryEntry {
   product_code_id: string;
   client_id: string | null;
   notes: string | null;
+  raw_material_included: boolean | null;
   gsm: number | null;
   tensile_strength: number | null;
   elongation: number | null;
@@ -64,8 +65,8 @@ export default function ProductionHistory() {
   const fetchHistory = async () => {
     if (!user) return;
     setLoading(true);
-    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, product_codes(code), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
-    const basicSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, raw_material_included, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, product_codes(code), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const basicSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, raw_material_included, product_codes(code), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
 
     let { data, error } = await supabase
       .from("production_entries")
@@ -179,11 +180,25 @@ export default function ProductionHistory() {
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? (e.rolls_count * e.quantity_per_roll)} {e.unit}</TableCell>
                   <TableCell>{e.unit}</TableCell>
                   <TableCell className="text-xs">
-                    {e.raw_material_usage && e.raw_material_usage.length > 0
-                      ? e.raw_material_usage.map((u, i) => (
-                          <div key={i}>{u.raw_materials?.name ?? "—"}: {u.quantity_used} {u.raw_materials?.unit ?? ""}</div>
-                        ))
-                      : <span className="text-muted-foreground">—</span>}
+                    {(() => {
+                      const noteHasRawMaterialFlag = /raw\s*material\s*used\s*[:\-]*\s*yes/i.test(e.notes ?? "");
+                      const noteCopperWires = (() => {
+                        const m = (e.notes ?? "").match(/copper\s*wires\s*[:\-]*\s*([^|]+)/i);
+                        return m?.[1]?.trim() ?? null;
+                      })();
+                      const materialLines = e.raw_material_usage && e.raw_material_usage.length > 0
+                        ? e.raw_material_usage.map((u) => `${u.raw_materials?.name ?? "—"}: ${u.quantity_used} ${u.raw_materials?.unit ?? ""}`.trim())
+                        : noteCopperWires
+                          ? [`Copper Wires: ${noteCopperWires}`]
+                          : (e.raw_material_included || noteHasRawMaterialFlag)
+                            ? ["Raw material used"]
+                            : [];
+                      return materialLines.length > 0
+                        ? materialLines.map((line, i) => (
+                            <div key={i}>{line}</div>
+                          ))
+                        : <span className="text-muted-foreground">—</span>;
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-right">
@@ -280,7 +295,21 @@ export default function ProductionHistory() {
                 ["Swelling Speed", get(reportEntry.swelling_speed, "Swelling Speed")],
                 ["Surface Resistance", get(reportEntry.surface_resistance, "Surface Resistance")],
               ];
-              const materials = reportEntry.raw_material_usage ?? [];
+              const noteHasRawMaterialFlag = /raw\s*material\s*used\s*[:\-]*\s*yes/i.test(reportEntry.notes ?? "");
+              const noteCopperWires = (() => {
+                const m = (reportEntry.notes ?? "").match(/copper\s*wires\s*[:\-]*\s*([^|]+)/i);
+                return m?.[1]?.trim() ?? null;
+              })();
+              const materials = reportEntry.raw_material_usage && reportEntry.raw_material_usage.length > 0
+                ? reportEntry.raw_material_usage.map((u) => ({
+                    label: u.raw_materials?.name ?? "—",
+                    value: `${u.quantity_used} ${u.raw_materials?.unit ?? ""}`.trim(),
+                  }))
+                : noteCopperWires
+                  ? [{ label: "Copper Wires", value: noteCopperWires }]
+                  : (reportEntry.raw_material_included || noteHasRawMaterialFlag)
+                    ? [{ label: "Raw Material", value: "Used" }]
+                    : [];
               return (
                 <div className="space-y-4">
                   <div className="divide-y border rounded-md">
@@ -299,8 +328,8 @@ export default function ProductionHistory() {
                       <div className="divide-y border rounded-md">
                         {materials.map((u, i) => (
                           <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                            <span className="text-sm">{u.raw_materials?.name ?? "—"}</span>
-                            <span className="font-mono font-semibold">{u.quantity_used} {u.raw_materials?.unit ?? ""}</span>
+                            <span className="text-sm">{u.label}</span>
+                            <span className="font-mono font-semibold">{u.value}</span>
                           </div>
                         ))}
                       </div>
