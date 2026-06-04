@@ -166,6 +166,7 @@ export default function ProductionEntry() {
     if (!useMultiThickness && (!form.rolls_count || !form.length_per_roll || !form.width_per_roll)) return;
 
     setSubmitting(true);
+    const validUsage = materialUsage.filter((r) => r.raw_material_id && Number(r.quantity_used) > 0);
 
     // Lab fields don't exist as columns in this DB — fold them into notes
     const labParts: string[] = [];
@@ -176,6 +177,9 @@ export default function ProductionEntry() {
     if (form.elongation) labParts.push(`Elongation: ${form.elongation}`);
     if (form.surface_resistance) labParts.push(`Surface Resistance: ${form.surface_resistance}`);
     if (form.copper_wire_count) labParts.push(`Copper Wires: ${form.copper_wire_count}`);
+    if ((form.raw_material_included || validUsage.length > 0) && validUsage.length === 0) {
+      labParts.push("Raw Material Used: Yes");
+    }
     if (form.rope_diameter_mm) labParts.push(`Rope Diameter: ${form.rope_diameter_mm} mm`);
     if (form.bundles_count) labParts.push(`Bundles: ${form.bundles_count}`);
     if (form.bundles_per_pallet) labParts.push(`Bundles/Pallet: ${form.bundles_per_pallet}`);
@@ -183,9 +187,12 @@ export default function ProductionEntry() {
 
     const combinedNotes = [form.notes.trim(), labParts.join(" | ")].filter(Boolean).join(" || ");
 
-    const baseExtras: Record<string, unknown> = { client_id: form.client_id || null };
+    const baseExtras: Record<string, unknown> = {
+      client_id: form.client_id || null,
+      lab_report_included: form.lab_report_included,
+      raw_material_included: form.raw_material_included || validUsage.length > 0,
+    };
     if (combinedNotes) baseExtras.notes = combinedNotes;
-    // lab_report_included / raw_material_included are UI-only toggles; not persisted
 
     const rowsToInsert = useMultiThickness
       ? validRopeRows.map((r) => ({
@@ -227,7 +234,6 @@ export default function ProductionEntry() {
     }
 
     // Insert optional raw material usage rows
-    const validUsage = materialUsage.filter((r) => r.raw_material_id && Number(r.quantity_used) > 0);
     if (validUsage.length > 0) {
       const usageRows = validUsage.map((r) => ({
         production_entry_id: entry.id,

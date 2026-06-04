@@ -33,6 +33,7 @@ interface LogEntry {
   swelling_speed: number | null;
   surface_resistance: number | null;
   notes: string | null;
+  raw_material_included: boolean | null;
   product_codes: { code: string; category_id: string | null } | null;
   profiles: { name: string } | null;
   raw_material_usage: { quantity_used: number; raw_materials: { name: string; unit: string } | null }[] | null;
@@ -94,8 +95,8 @@ export default function ProductionLogs() {
   const fetchEntries = async () => {
     setLoading(true);
 
-    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
-    const basicSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const basicSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
 
     let { data, error } = await supabase
       .from("production_entries")
@@ -395,6 +396,18 @@ export default function ProductionLogs() {
                 const sqm = width > 0 && lengthMtr > 0 ? (width / 1000) * lengthMtr : 0;
                 const kg = isKg ? total : (gsm > 0 && sqm > 0 ? (sqm * gsm) / 1000 : 0);
                 const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
+                const noteHasRawMaterialFlag = /raw\s*material\s*used\s*[:\-]*\s*yes/i.test(e.notes ?? "");
+                const noteCopperWires = (() => {
+                  const m = (e.notes ?? "").match(/copper\s*wires\s*[:\-]*\s*([^|]+)/i);
+                  return m?.[1]?.trim() ?? null;
+                })();
+                const materialLines = e.raw_material_usage && e.raw_material_usage.length > 0
+                  ? e.raw_material_usage.map((u) => `${u.raw_materials?.name ?? "—"}: ${u.quantity_used} ${u.raw_materials?.unit ?? ""}`.trim())
+                  : noteCopperWires
+                    ? [`Copper Wires: ${noteCopperWires}`]
+                    : (e.raw_material_included || noteHasRawMaterialFlag)
+                      ? ["Raw material used"]
+                      : [];
                 const hasReport =
                   e.gsm != null || e.thickness_mm != null || e.tensile_strength != null || e.elongation != null ||
                   e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
@@ -418,9 +431,9 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-xs">
-                    {e.raw_material_usage && e.raw_material_usage.length > 0
-                      ? e.raw_material_usage.map((u, i) => (
-                          <div key={i}>{u.raw_materials?.name ?? "—"}: {u.quantity_used} {u.raw_materials?.unit ?? ""}</div>
+                    {materialLines.length > 0
+                      ? materialLines.map((line, i) => (
+                          <div key={i}>{line}</div>
                         ))
                       : <span className="text-muted-foreground">—</span>}
                   </TableCell>
@@ -568,6 +581,21 @@ export default function ProductionLogs() {
               ["Swelling Speed", get(reportEntry.swelling_speed, "Swelling Speed")],
               ["Surface Resistance", get(reportEntry.surface_resistance, "Surface Resistance")],
             ];
+            const noteHasRawMaterialFlag = /raw\s*material\s*used\s*[:\-]*\s*yes/i.test(reportEntry.notes ?? "");
+            const noteCopperWires = (() => {
+              const m = (reportEntry.notes ?? "").match(/copper\s*wires\s*[:\-]*\s*([^|]+)/i);
+              return m?.[1]?.trim() ?? null;
+            })();
+            const materialLines = reportEntry.raw_material_usage && reportEntry.raw_material_usage.length > 0
+              ? reportEntry.raw_material_usage.map((u) => ({
+                  label: u.raw_materials?.name ?? "—",
+                  value: `${u.quantity_used} ${u.raw_materials?.unit ?? ""}`.trim(),
+                }))
+              : noteCopperWires
+                ? [{ label: "Copper Wires", value: noteCopperWires }]
+                : (reportEntry.raw_material_included || noteHasRawMaterialFlag)
+                  ? [{ label: "Raw Material", value: "Used" }]
+                  : [];
             return (
               <div className="space-y-4">
                 <div className="divide-y border rounded-md">
@@ -582,12 +610,12 @@ export default function ProductionLogs() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold mb-2">Raw Materials Used</p>
-                  {reportEntry.raw_material_usage && reportEntry.raw_material_usage.length > 0 ? (
+                  {materialLines.length > 0 ? (
                     <div className="divide-y border rounded-md">
-                      {reportEntry.raw_material_usage.map((u, i) => (
+                      {materialLines.map((u, i) => (
                         <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                          <span className="text-sm">{u.raw_materials?.name ?? "—"}</span>
-                          <span className="font-mono font-semibold">{u.quantity_used} {u.raw_materials?.unit ?? ""}</span>
+                          <span className="text-sm">{u.label}</span>
+                          <span className="font-mono font-semibold">{u.value}</span>
                         </div>
                       ))}
                     </div>
