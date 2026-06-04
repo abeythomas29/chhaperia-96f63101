@@ -116,6 +116,8 @@ export default function SlittingEntryForm() {
       const rolls = tc * rpc;
       return {
         product_code_id: form.product_code_id,
+        client_id: form.client_id || null,
+
         source_quantity: idx === 0 ? sourceQty : 0,
         cut_quantity_produced: rollLength ? rollLength * rolls : rolls,
         cut_width_mm: parseFloat(r.width_mm),
