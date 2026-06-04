@@ -148,10 +148,12 @@ export default function SlittingLogs() {
       gsm: editH36Form.gsm ? Number(editH36Form.gsm) : null,
       notes: editH36Form.notes || null,
     };
-    const { error } = await supabase.from("head36_entries" as any).update(payload).eq("id", editH36.id);
+    const { data, error } = await supabase.from("head36_entries" as any).update(payload).eq("id", editH36.id).select("id");
     setSavingH36(false);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else if (!data || (data as any[]).length === 0) {
+      toast({ title: "Not updated", description: "No rows changed. You may not have permission (admin role required).", variant: "destructive" });
     } else {
       setHead36ByEntry((prev) => {
         const next: Record<string, Head36Row[]> = {};
