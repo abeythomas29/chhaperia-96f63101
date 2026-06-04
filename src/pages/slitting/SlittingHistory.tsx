@@ -234,6 +234,9 @@ export default function SlittingHistory() {
                       <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{displayNotes || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                             <Pencil className="h-4 w-4" />
                           </Button>
