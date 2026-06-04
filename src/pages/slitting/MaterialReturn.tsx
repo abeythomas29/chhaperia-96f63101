@@ -63,7 +63,9 @@ export default function MaterialReturn() {
   const newReturn = parseFloat(form.returned_quantity) || 0;
   const totalReturned = alreadyReturned + newReturn;
   const issued = selected ? Number(selected.source_quantity) : 0;
-  const produced = selected ? Number(selected.cut_quantity_produced) : 0;
+  const producedLength = selected ? Number(selected.cut_quantity_produced) : 0;
+  const cutWidthMm = selected ? Number(selected.cut_width_mm) : 0;
+  const produced = selected ? (cutWidthMm * producedLength) / 1000 : 0; // sqm
   const wastage = selected ? issued - produced - totalReturned : 0;
   const matched = selected && Math.abs(wastage) < 0.01;
 
