@@ -24,6 +24,14 @@ interface Head36Row {
   notes: string | null;
 }
 
+interface ReturnRow {
+  id: string;
+  date: string;
+  returned_quantity: number;
+  unit: string;
+  notes: string | null;
+}
+
 interface SlittingRow {
   id: string;
   date: string;
