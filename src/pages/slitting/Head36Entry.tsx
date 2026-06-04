@@ -70,9 +70,12 @@ export default function Head36Entry() {
         return { ...r, gsm } as SlittingRow;
       });
       setSlittingEntries(rows);
+      const cl = await supabase.from("company_clients").select("id, name").eq("status", "active").order("name");
+      setClients((cl.data as any[]) ?? []);
       setLoading(false);
     })();
   }, [user]);
+
 
   const source = slittingEntries.find((s) => s.id === form.slitting_entry_id);
 
