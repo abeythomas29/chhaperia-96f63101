@@ -50,7 +50,7 @@ export default function MaterialReturn() {
     client_id: "",
     entry_date: new Date().toISOString().slice(0, 10),
     returned_quantity: "",
-    unit: "meters",
+    unit: "sqmtr",
     notes: "",
   });
 
