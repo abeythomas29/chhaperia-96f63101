@@ -86,8 +86,10 @@ export default function ProductionLogs() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Report dialog (was Lab Report + View Totals)
-  const [reportEntry, setReportEntry] = useState<LogEntry | null>(null);
+  // RM (Raw Material) + 36P (36-head Production) status dialogs
+  const [rmEntry, setRmEntry] = useState<LogEntry | null>(null);
+  const [h36Entry, setH36Entry] = useState<LogEntry | null>(null);
+  const [head36ByProduct, setHead36ByProduct] = useState<Record<string, any[]>>({});
 
   // Dropdowns
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
