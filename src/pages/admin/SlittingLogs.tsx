@@ -599,46 +599,41 @@ export default function SlittingLogs() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!reportEntry} onOpenChange={(open) => !open && setReportEntry(null)}>
-          <DialogContent>
+        <Dialog open={!!rmOpen} onOpenChange={(open) => !open && setRmOpen(null)}>
+          <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" /> Lab Report
+                <span className="h-6 w-6 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">RM</span>
+                Material Returns — {rmOpen?.product_codes?.code ?? "—"}
               </DialogTitle>
               <DialogDescription>
-                {reportEntry?.product_codes?.code ?? "—"} · {reportEntry ? format(new Date(reportEntry.date), "dd/MM/yyyy") : ""}
+                Slitting entry dated {rmOpen ? format(new Date(rmOpen.date), "dd/MM/yy") : ""} · Cut width {rmOpen?.cut_width_mm} mm
               </DialogDescription>
             </DialogHeader>
-            {reportEntry && (() => {
-              const note = (label: string) => {
-                if (!reportEntry.notes) return null;
-                const m = reportEntry.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
-                return m ? m[1] : null;
-              };
-              const pairs: [string, string | null][] = [
-                ["GSM", reportEntry.gsm != null ? String(reportEntry.gsm) : note("GSM")],
-                ["Thickness (mm)", reportEntry.thickness_mm != null ? String(reportEntry.thickness_mm) : note("Thickness")],
-                ["Tensile Strength", note("Tensile")],
-                ["Elongation", note("Elongation")],
-                ["Swelling Height", note("Swelling Height")],
-                ["Swelling Speed", note("Swelling Speed")],
-                ["Surface Resistance", note("Surface Resistance")],
-              ];
+            {rmOpen && (() => {
+              const list = returnsByEntry[rmOpen.id] ?? [];
+              if (!list.length) return <p className="text-muted-foreground text-sm">No material returns recorded for this slitting entry.</p>;
+              const total = list.reduce((s, r) => s + (Number(r.returned_quantity) || 0), 0);
               return (
-                <div className="divide-y border rounded-md">
-                  {pairs.map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                      <span className="text-sm text-muted-foreground">{k}</span>
-                      <span className={`font-mono ${v != null && v !== "" ? "font-semibold" : "text-muted-foreground"}`}>
-                        {v != null && v !== "" ? v : "N/A"}
-                      </span>
+                <div className="space-y-3">
+                  <div className="bg-muted rounded p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Total Returned</p>
+                    <p className="text-xl font-bold text-primary">{total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm font-normal">{list[0]?.unit ?? ""}</span></p>
+                  </div>
+                  {list.map((r) => (
+                    <div key={r.id} className="border rounded-lg p-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{format(new Date(r.date), "dd/MM/yy")}</span>
+                        <span className="font-mono font-semibold">{Number(r.returned_quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} {r.unit}</span>
+                      </div>
+                      {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
                     </div>
                   ))}
                 </div>
               );
             })()}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setReportEntry(null)}>Close</Button>
+              <Button variant="outline" onClick={() => setRmOpen(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
