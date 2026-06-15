@@ -169,7 +169,7 @@ export default function ProductionLogs() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, dateFrom, dateTo, categoryFilter]);
+  }, [search, dateFrom, dateTo, categoryFilter, itemsPerPage]);
 
   const filtered = entries.filter((e) => {
     const s = search.toLowerCase();
