@@ -9,6 +9,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
 import InventoryManagerLayout from "./layouts/InventoryManagerLayout";
 import SlittingManagerLayout from "./layouts/SlittingManagerLayout";
+import SalesManagerLayout from "./layouts/SalesManagerLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductionLogs from "./pages/admin/ProductionLogs";
 import StockManagement from "./pages/admin/StockManagement";
@@ -64,8 +65,10 @@ const App = () => (
               <Route index element={<InwardEntry />} />
               <Route path="view" element={<InventoryView />} />
               <Route path="history" element={<InwardHistory />} />
-              <Route path="sales" element={<SalesEntry />} />
-              <Route path="sales-history" element={<SalesHistory />} />
+            </Route>
+            <Route path="/sales" element={<SalesManagerLayout />}>
+              <Route index element={<SalesEntry />} />
+              <Route path="history" element={<SalesHistory />} />
             </Route>
             <Route path="/slitting" element={<SlittingManagerLayout />}>
               <Route index element={<SlittingEntry />} />

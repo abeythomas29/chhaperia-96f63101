@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Package, ArrowDownToLine, History, LogOut, Loader2 } from "lucide-react";
+import { LogOut, Loader2, ShoppingCart, ListOrdered } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function InventoryManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isWorker, isInventoryManager } = useAuth();
+export default function SalesManagerLayout() {
+  const { user, loading, signOut, profileName, isAdmin, isSalesManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,19 +24,18 @@ export default function InventoryManagerLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (!isInventoryManager && isAdmin) return <Navigate to="/admin" replace />;
-  if (!isInventoryManager) return <Navigate to="/login" replace />;
+  if (!isSalesManager && isAdmin) return <Navigate to="/admin" replace />;
+  if (!isSalesManager) return <Navigate to="/login" replace />;
 
   const navItems = [
-    { to: "/inventory", label: "Add Stock", icon: ArrowDownToLine, end: true },
-    { to: "/inventory/view", label: "Inventory", icon: Package, end: false },
-    { to: "/inventory/history", label: "My History", icon: History, end: false },
+    { to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true },
+    { to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <header className="h-14 border-b bg-primary text-primary-foreground flex items-center justify-between px-4">
-        <Link to="/inventory" className="flex items-center gap-3">
+        <Link to="/sales" className="flex items-center gap-3">
           <img src={logo} alt="Chhaperia Cables" className="h-8 w-auto" />
           <span className="font-bold text-sm">Chhaperia Cables</span>
         </Link>

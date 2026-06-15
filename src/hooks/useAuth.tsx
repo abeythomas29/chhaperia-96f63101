@@ -10,7 +10,7 @@ const signUpSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password is too long"),
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
   employeeId: z.string().trim().min(1, "Employee ID is required").max(50, "Employee ID is too long"),
-  requestedDepartment: z.enum(["worker", "inventory_manager", "slitting_manager"]),
+  requestedDepartment: z.enum(["worker", "inventory_manager", "slitting_manager", "sales_manager"]),
 });
 
 
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data && data.length > 0) {
       const userRoles = data.map((r) => r.role);
       setRoles(userRoles);
-      const priority = ["super_admin", "admin", "worker", "inventory_manager", "slitting_manager"];
+      const priority = ["super_admin", "admin", "worker", "inventory_manager", "slitting_manager", "sales_manager"];
       const primary = priority.find((p) => userRoles.includes(p)) ?? userRoles[0];
       setRole(primary);
       return;
@@ -189,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isPending: role === "pending" || (roles.length === 0 && !loading),
         isInventoryManager: roles.includes("inventory_manager"),
         isSlittingManager: roles.includes("slitting_manager"),
+        isSalesManager: roles.includes("sales_manager"),
         hasRole,
       }}
     >
