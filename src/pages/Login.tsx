@@ -49,6 +49,7 @@ export default function Login() {
     if (role === "worker") return <Navigate to="/worker" replace />;
     if (role === "inventory_manager") return <Navigate to="/inventory" replace />;
     if (role === "slitting_manager") return <Navigate to="/slitting" replace />;
+    if (role === "sales_manager") return <Navigate to="/sales" replace />;
     return <Navigate to="/admin" replace />;
   }
 
