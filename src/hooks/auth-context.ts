@@ -20,6 +20,7 @@ export interface AuthContextType {
   isWorker: boolean;
   isInventoryManager: boolean;
   isSlittingManager: boolean;
+  isSalesManager: boolean;
   hasRole: (r: string) => boolean;
 }
 
