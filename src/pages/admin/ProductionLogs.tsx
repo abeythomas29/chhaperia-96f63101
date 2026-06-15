@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Download, Search, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Download, Search, Pencil, Trash2, CalendarIcon, FlaskConical } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -86,9 +86,10 @@ export default function ProductionLogs() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // RM (Raw Material) + 36P (36-head Production) status dialogs
+  // RM (Raw Material) + 36P (36-head Production) + LR (Lab Report) status dialogs
   const [rmEntry, setRmEntry] = useState<LogEntry | null>(null);
   const [h36Entry, setH36Entry] = useState<LogEntry | null>(null);
+  const [reportEntry, setReportEntry] = useState<LogEntry | null>(null);
   const [head36ByProduct, setHead36ByProduct] = useState<Record<string, any[]>>({});
 
   // Dropdowns
@@ -475,18 +476,44 @@ export default function ProductionLogs() {
                     <div className="flex justify-end items-center gap-1">
                       {(() => {
                         const hasRm = materialLines.length > 0;
+                        const h36s = head36ByProduct[e.product_code_id] ?? [];
+                        const has36 = h36s.length > 0;
                         return (
-                          <button
-                            type="button"
-                            onClick={() => setRmEntry(e)}
-                            title={hasRm ? "Raw material recorded — click to view" : "No raw material recorded"}
-                            className={cn(
-                              "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
-                              hasRm ? "bg-emerald-500" : "bg-red-500"
-                            )}
-                          >
-                            RM
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setRmEntry(e)}
+                              title={hasRm ? "Raw material recorded — click to view" : "No raw material recorded"}
+                              className={cn(
+                                "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                hasRm ? "bg-emerald-500" : "bg-red-500"
+                              )}
+                            >
+                              RM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReportEntry(e)}
+                              title={hasReport ? "Lab report recorded — click to view" : "No lab report recorded"}
+                              className={cn(
+                                "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                hasReport ? "bg-emerald-500" : "bg-red-500"
+                              )}
+                            >
+                              LR
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setH36Entry(e)}
+                              title={has36 ? `${h36s.length} 36-head production entry(ies) for this product code — click to view` : "No 36-head production recorded for this product code"}
+                              className={cn(
+                                "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                has36 ? "bg-emerald-500" : "bg-red-500"
+                              )}
+                            >
+                              36P
+                            </button>
+                          </>
                         );
                       })()}
 
