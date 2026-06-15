@@ -65,8 +65,10 @@ const App = () => (
               <Route index element={<InwardEntry />} />
               <Route path="view" element={<InventoryView />} />
               <Route path="history" element={<InwardHistory />} />
-              <Route path="sales" element={<SalesEntry />} />
-              <Route path="sales-history" element={<SalesHistory />} />
+            </Route>
+            <Route path="/sales" element={<SalesManagerLayout />}>
+              <Route index element={<SalesEntry />} />
+              <Route path="history" element={<SalesHistory />} />
             </Route>
             <Route path="/slitting" element={<SlittingManagerLayout />}>
               <Route index element={<SlittingEntry />} />
