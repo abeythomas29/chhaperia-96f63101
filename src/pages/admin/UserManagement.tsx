@@ -19,12 +19,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const departmentLabels: Record<string, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
+  sales_manager: "Sales Manager",
   slitting_manager: "Slitting Manager",
 };
 
 const roleLabels: Record<string, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
+  sales_manager: "Sales Manager",
   slitting_manager: "Slitting Manager",
   admin: "Admin",
   super_admin: "Super Admin",
@@ -33,6 +35,7 @@ const roleLabels: Record<string, string> = {
 const availableRoles = [
   { value: "worker", label: "Production Manager" },
   { value: "inventory_manager", label: "Inventory Manager" },
+  { value: "sales_manager", label: "Sales Manager" },
   { value: "slitting_manager", label: "Slitting Manager" },
   { value: "admin", label: "Admin" },
   { value: "super_admin", label: "Super Admin" },
