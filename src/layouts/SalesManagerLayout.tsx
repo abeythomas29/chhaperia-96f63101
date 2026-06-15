@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SalesManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isSalesManager } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isSalesManager, isSlittingManager, isInventoryManager, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
