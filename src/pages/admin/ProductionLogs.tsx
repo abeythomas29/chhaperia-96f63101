@@ -183,10 +183,11 @@ export default function ProductionLogs() {
 
   const exportCSV = () => {
     const rows = [
-      ["Date", "Product Code", "Production Manager", "Rolls", "Qty/Roll", "Total", "Unit", "Thickness (mm)"],
+      ["Date", "Product Code", "Client", "Production Manager", "Rolls", "Qty/Roll", "Total", "Unit", "Thickness (mm)"],
       ...filtered.map((e) => [
         e.date,
         e.product_codes?.code ?? "",
+        e.company_clients?.name ?? "",
         e.profiles?.name ?? "",
         e.rolls_count,
         e.quantity_per_roll,
