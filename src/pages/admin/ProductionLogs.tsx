@@ -431,6 +431,7 @@ export default function ProductionLogs() {
                   </TableCell>
                   <TableCell className="text-base font-medium whitespace-nowrap">{(() => { const d = new Date(e.date); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; })()}</TableCell>
                   <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
+                  <TableCell>{e.company_clients?.name ?? "—"}</TableCell>
                   <TableCell>{e.profiles?.name ?? "—"}</TableCell>
                   <TableCell className="text-right">{e.rolls_count}</TableCell>
                   <TableCell className="text-right">{e.quantity_per_roll} sqmtr</TableCell>
