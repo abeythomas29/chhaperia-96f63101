@@ -267,6 +267,7 @@ export default function SlittingLogs() {
     return (
       (e.product_codes?.code ?? "").toLowerCase().includes(q) ||
       (managers[e.slitting_manager_id] ?? "").toLowerCase().includes(q) ||
+      (e.company_clients?.name ?? "").toLowerCase().includes(q) ||
       (e.notes ?? "").toLowerCase().includes(q)
     );
   });
