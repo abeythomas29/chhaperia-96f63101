@@ -314,12 +314,49 @@ export default function SlittingLogs() {
     );
   }
 
+  const exportCSV = () => {
+    const rows: (string | number)[][] = [
+      ["Date", "Product", "Client", "Manager", "Cut Width (mm)", "Source Qty", "Unit", "Length (mtr)", "Area (sqm)", "Weight (kg)", "GSM", "Thickness (mm)", "Notes"],
+      ...filtered.map((e) => {
+        const t = computeTotals(e);
+        const gsm = e.gsm ?? parseNum(e.notes, "GSM");
+        return [
+          e.date,
+          e.product_codes?.code ?? "",
+          e.company_clients?.name ?? "",
+          managers[e.slitting_manager_id] ?? "",
+          e.cut_width_mm,
+          e.source_quantity,
+          e.unit,
+          t.lengthMtr.toFixed(2),
+          t.sqm.toFixed(2),
+          t.kg > 0 ? t.kg.toFixed(2) : "",
+          gsm > 0 ? gsm : "",
+          e.thickness_mm ?? "",
+          (e.notes ?? "").replace(/[\r\n,]+/g, " "),
+        ];
+      }),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `slitting_logs_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Scissors className="h-5 w-5" /> Slitting Logs
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Scissors className="h-5 w-5" /> Slitting Logs
+          </CardTitle>
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-end gap-3 mb-4">
