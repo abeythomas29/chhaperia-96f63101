@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Package, ArrowDownToLine, History, LogOut, Loader2 } from "lucide-react";
+import { Package, ArrowDownToLine, History, LogOut, Loader2, ShoppingCart, ListOrdered, Scissors, ClipboardList } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function InventoryManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isWorker, isInventoryManager } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isWorker, isInventoryManager, isSalesManager, isSlittingManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -32,6 +32,16 @@ export default function InventoryManagerLayout() {
     { to: "/inventory/view", label: "Inventory", icon: Package, end: false },
     { to: "/inventory/history", label: "My History", icon: History, end: false },
   ];
+  if (isSalesManager) {
+    navItems.push({ to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true });
+    navItems.push({ to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false });
+  }
+  if (isSlittingManager) {
+    navItems.push({ to: "/slitting", label: "Slitting", icon: Scissors, end: false });
+  }
+  if (isWorker) {
+    navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">

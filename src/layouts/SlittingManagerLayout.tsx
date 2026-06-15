@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Scissors, History, LogOut, Loader2, ClipboardList } from "lucide-react";
+import { Scissors, History, LogOut, Loader2, ClipboardList, ShoppingCart, ListOrdered, Package } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SlittingManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isSlittingManager, isWorker } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isSlittingManager, isWorker, isSalesManager, isInventoryManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,6 +34,13 @@ export default function SlittingManagerLayout() {
 
   if (isWorker) {
     navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
+  }
+  if (isSalesManager) {
+    navItems.push({ to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true });
+    navItems.push({ to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false });
+  }
+  if (isInventoryManager) {
+    navItems.push({ to: "/inventory", label: "Inventory", icon: Package, end: false });
   }
 
   return (

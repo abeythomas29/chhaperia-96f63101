@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Loader2, ShoppingCart, ListOrdered } from "lucide-react";
+import { LogOut, Loader2, ShoppingCart, ListOrdered, Scissors, Package, ClipboardList } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SalesManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isSalesManager } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isSalesManager, isSlittingManager, isInventoryManager, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,6 +31,15 @@ export default function SalesManagerLayout() {
     { to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true },
     { to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false },
   ];
+  if (isSlittingManager) {
+    navItems.push({ to: "/slitting", label: "Slitting", icon: Scissors, end: false });
+  }
+  if (isInventoryManager) {
+    navItems.push({ to: "/inventory", label: "Inventory", icon: Package, end: false });
+  }
+  if (isWorker) {
+    navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">
