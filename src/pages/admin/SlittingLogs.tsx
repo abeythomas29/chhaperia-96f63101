@@ -63,6 +63,15 @@ interface Head36Row {
   operator_id: string;
 }
 
+interface ReturnRow {
+  id: string;
+  date: string;
+  slitting_entry_id: string;
+  returned_quantity: number;
+  unit: string;
+  notes: string | null;
+}
+
 export default function SlittingLogs() {
   const [entries, setEntries] = useState<SlittingRow[]>([]);
   const [managers, setManagers] = useState<Record<string, string>>({});
