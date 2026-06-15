@@ -35,6 +35,13 @@ export default function SlittingManagerLayout() {
   if (isWorker) {
     navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
   }
+  if (isSalesManager) {
+    navItems.push({ to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true });
+    navItems.push({ to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false });
+  }
+  if (isInventoryManager) {
+    navItems.push({ to: "/inventory", label: "Inventory", icon: Package, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">
