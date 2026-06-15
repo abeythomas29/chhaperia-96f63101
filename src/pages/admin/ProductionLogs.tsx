@@ -434,7 +434,7 @@ export default function ProductionLogs() {
               </TableRow>
 
             ) : (
-              filtered.map((e) => {
+              paginated.map((e) => {
                 const parseNum = (label: string) => {
                   if (!e.notes) return 0;
                   const m = e.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
