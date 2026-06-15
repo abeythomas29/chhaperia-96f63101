@@ -471,6 +471,23 @@ export default function SlittingLogs() {
                       <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-1">
+                          {(() => {
+                            const h36s = head36ByEntry[e.id] ?? [];
+                            const has36 = h36s.length > 0;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setHead36Open(e)}
+                                title={has36 ? `${h36s.length} 36-head production entry(ies) — click to view` : "No 36-head production recorded"}
+                                className={cn(
+                                  "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                  has36 ? "bg-emerald-500" : "bg-red-500"
+                                )}
+                              >
+                                36P
+                              </button>
+                            );
+                          })()}
                           <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -479,6 +496,7 @@ export default function SlittingLogs() {
                           </Button>
                         </div>
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
