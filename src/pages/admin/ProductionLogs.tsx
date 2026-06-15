@@ -465,10 +465,38 @@ export default function ProductionLogs() {
                       : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
-                        <FileText className="h-4 w-4" />
-                      </Button>
+                    <div className="flex justify-end items-center gap-1">
+                      {(() => {
+                        const hasRm = materialLines.length > 0;
+                        const h36s = head36ByProduct[e.product_code_id] ?? [];
+                        const has36 = h36s.length > 0;
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setRmEntry(e)}
+                              title={hasRm ? "Raw material recorded — click to view" : "No raw material recorded"}
+                              className={cn(
+                                "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                hasRm ? "bg-emerald-500" : "bg-red-500"
+                              )}
+                            >
+                              RM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setH36Entry(e)}
+                              title={has36 ? `${h36s.length} 36-head production entry(ies) — click to view` : "No 36-head production recorded"}
+                              className={cn(
+                                "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                                has36 ? "bg-emerald-500" : "bg-red-500"
+                              )}
+                            >
+                              36P
+                            </button>
+                          </>
+                        );
+                      })()}
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
