@@ -456,22 +456,13 @@ export default function SlittingLogs() {
                   const gsm = e.gsm ?? parseNum(e.notes, "GSM");
                   const h36s = head36ByEntry[e.id] ?? [];
                   const has36 = h36s.length > 0;
+                  const rms = returnsByEntry[e.id] ?? [];
+                  const hasRm = rms.length > 0;
                   return (
                     <TableRow key={e.id}>
                       <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span>{e.product_codes?.code ?? "—"}</span>
-                          {has36 && (
-                            <Badge
-                              onClick={() => setHead36Open(e)}
-                              className="cursor-pointer bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                              title="View 36 Head production details"
-                            >
-                              <Layers className="h-3 w-3 mr-1" /> 36
-                            </Badge>
-                          )}
-                        </div>
+                        <span>{e.product_codes?.code ?? "—"}</span>
                       </TableCell>
                       <TableCell>{e.company_clients?.name ?? "—"}</TableCell>
                       <TableCell>{managers[e.slitting_manager_id] ?? "—"}</TableCell>
@@ -483,10 +474,29 @@ export default function SlittingLogs() {
                       <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                       <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
-                            <FileText className="h-4 w-4" />
-                          </Button>
+                        <div className="flex justify-end items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setRmOpen(e)}
+                            title={hasRm ? `${rms.length} material return(s) — click to view` : "No material returns recorded"}
+                            className={cn(
+                              "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                              hasRm ? "bg-emerald-500" : "bg-red-500"
+                            )}
+                          >
+                            RM
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHead36Open(e)}
+                            title={has36 ? `${h36s.length} 36-head production entry(ies) — click to view` : "No 36-head production recorded"}
+                            className={cn(
+                              "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
+                              has36 ? "bg-emerald-500" : "bg-red-500"
+                            )}
+                          >
+                            36P
+                          </button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                             <Pencil className="h-4 w-4" />
                           </Button>
