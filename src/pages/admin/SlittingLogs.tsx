@@ -454,10 +454,6 @@ export default function SlittingLogs() {
                 {filtered.map((e) => {
                   const t = computeTotals(e);
                   const gsm = e.gsm ?? parseNum(e.notes, "GSM");
-                  const h36s = head36ByEntry[e.id] ?? [];
-                  const has36 = h36s.length > 0;
-                  const rms = returnsByEntry[e.id] ?? [];
-                  const hasRm = rms.length > 0;
                   return (
                     <TableRow key={e.id}>
                       <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -475,28 +471,6 @@ export default function SlittingLogs() {
                       <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setRmOpen(e)}
-                            title={hasRm ? `${rms.length} material return(s) — click to view` : "No material returns recorded"}
-                            className={cn(
-                              "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
-                              hasRm ? "bg-emerald-500" : "bg-red-500"
-                            )}
-                          >
-                            RM
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setHead36Open(e)}
-                            title={has36 ? `${h36s.length} 36-head production entry(ies) — click to view` : "No 36-head production recorded"}
-                            className={cn(
-                              "h-7 w-7 rounded-full text-[10px] font-bold text-white flex items-center justify-center transition-opacity hover:opacity-80",
-                              has36 ? "bg-emerald-500" : "bg-red-500"
-                            )}
-                          >
-                            36P
-                          </button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                             <Pencil className="h-4 w-4" />
                           </Button>
