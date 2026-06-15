@@ -96,10 +96,10 @@ export default function ProductionLogs() {
   const fetchEntries = async () => {
     setLoading(true);
 
-    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
-    const midSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
-    const noRMISelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code, category_id), profiles:worker_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
-    const minimalSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code, category_id), profiles:worker_id(name)";
+    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const midSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, raw_material_included, product_codes(code, category_id), profiles:worker_id(name), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const noRMISelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code, category_id), profiles:worker_id(name), company_clients:client_id(name), raw_material_usage(quantity_used, raw_materials(name, unit))";
+    const minimalSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code, category_id), profiles:worker_id(name), company_clients:client_id(name)";
 
     let { data, error } = await supabase
       .from("production_entries")
