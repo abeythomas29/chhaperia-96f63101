@@ -32,6 +32,16 @@ export default function InventoryManagerLayout() {
     { to: "/inventory/view", label: "Inventory", icon: Package, end: false },
     { to: "/inventory/history", label: "My History", icon: History, end: false },
   ];
+  if (isSalesManager) {
+    navItems.push({ to: "/sales", label: "Record Sale", icon: ShoppingCart, end: true });
+    navItems.push({ to: "/sales/history", label: "Sales History", icon: ListOrdered, end: false });
+  }
+  if (isSlittingManager) {
+    navItems.push({ to: "/slitting", label: "Slitting", icon: Scissors, end: false });
+  }
+  if (isWorker) {
+    navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">
