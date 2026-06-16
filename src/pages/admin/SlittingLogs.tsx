@@ -439,8 +439,8 @@ export default function SlittingLogs() {
         {filtered.length === 0 ? (
           <p className="text-muted-foreground text-center py-6">No slitting entries.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="w-full">
+            <Table className="w-full table-auto text-xs sm:text-sm [&_th]:px-2 [&_td]:px-2 [&_th]:py-2 [&_td]:py-2 [&_th]:whitespace-normal [&_td]:break-words">
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
