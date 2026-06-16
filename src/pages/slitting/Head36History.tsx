@@ -37,11 +37,18 @@ export default function Head36History() {
       const { data, error } = await supabase
         .from("head36_entries" as any)
         .select(
-          "id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, thickness_mm, gsm, total_quantity, unit, notes, slitting_entry_id, slitting_entries(cut_width_mm, product_codes(code))"
+          "id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, thickness_mm, gsm, total_quantity, unit, notes, slitting_entry_id, operator_id, slitting_entries(cut_width_mm, slitting_manager_id, product_codes(code))"
         )
-        .eq("operator_id", user.id)
         .order("date", { ascending: false });
-      if (!error) setRows(((data as unknown) as Head36Row[]) ?? []);
+      let list = ((data as unknown) as (Head36Row & { operator_id?: string | null; slitting_entries?: any })[]) ?? [];
+      // Prefer entries the user logged themselves; if any exist with mismatched
+      // operator_id but the underlying slitting entry is theirs, include those too.
+      list = list.filter((r) =>
+        r.operator_id === user.id ||
+        r.slitting_entries?.slitting_manager_id === user.id ||
+        (!r.operator_id && !r.slitting_entries?.slitting_manager_id)
+      );
+      if (!error) setRows(list);
       setLoading(false);
     })();
   }, [user]);
