@@ -19,6 +19,7 @@ interface Head36Row {
   total_quantity: number | null;
   unit: string;
   notes: string | null;
+  operator_id: string | null;
   slitting_entry_id: string | null;
   slitting_entries?: {
     cut_width_mm: number | null;
