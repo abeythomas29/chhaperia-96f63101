@@ -1,6 +1,6 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Scissors, History, LogOut, Loader2, ClipboardList, ShoppingCart, ListOrdered, Package } from "lucide-react";
+import { Scissors, History, LogOut, Loader2, ClipboardList, ShoppingCart, ListOrdered, Package, Layers } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,8 @@ export default function SlittingManagerLayout() {
 
   const navItems = [
     { to: "/slitting", label: "New Slitting", icon: Scissors, end: true },
-    { to: "/slitting/history", label: "My History", icon: History, end: false },
+    { to: "/slitting/history", label: "My History", icon: History, end: true },
+    { to: "/slitting/head36-history", label: "36 Head History", icon: Layers, end: false },
   ];
 
   if (isWorker) {

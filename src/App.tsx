@@ -28,6 +28,7 @@ import SalesEntry from "./pages/inventory/SalesEntry";
 import SalesHistory from "./pages/inventory/SalesHistory";
 import SlittingEntry from "./pages/slitting/SlittingEntry";
 import SlittingHistory from "./pages/slitting/SlittingHistory";
+import Head36History from "./pages/slitting/Head36History";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/slitting" element={<SlittingManagerLayout />}>
               <Route index element={<SlittingEntry />} />
               <Route path="history" element={<SlittingHistory />} />
+              <Route path="head36-history" element={<Head36History />} />
             </Route>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
