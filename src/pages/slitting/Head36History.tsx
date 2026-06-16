@@ -9,6 +9,7 @@ import { format } from "date-fns";
 interface Head36Row {
   id: string;
   date: string;
+  product_code_id: string | null;
   rolls_taken: number;
   rolls_produced: number;
   roll_width_mm: number | null;
@@ -21,6 +22,8 @@ interface Head36Row {
   slitting_entry_id: string | null;
   slitting_entries?: {
     cut_width_mm: number | null;
+    slitting_manager_id?: string | null;
+    product_code_id?: string | null;
     product_codes?: { code: string } | null;
   } | null;
 }
@@ -37,10 +40,48 @@ export default function Head36History() {
       const { data, error } = await supabase
         .from("head36_entries" as any)
         .select(
-          "id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, thickness_mm, gsm, total_quantity, unit, notes, slitting_entry_id, operator_id, slitting_entries(cut_width_mm, slitting_manager_id, product_codes(code))"
+          "id, date, product_code_id, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, thickness_mm, gsm, total_quantity, unit, notes, slitting_entry_id, operator_id"
         )
         .order("date", { ascending: false });
       let list = ((data as unknown) as (Head36Row & { operator_id?: string | null; slitting_entries?: any })[]) ?? [];
+      const slittingIds = Array.from(new Set(list.map((r) => r.slitting_entry_id).filter(Boolean))) as string[];
+      const directProductIds = Array.from(new Set(list.map((r) => r.product_code_id).filter(Boolean))) as string[];
+      let slittingById: Record<string, { cut_width_mm: number | null; slitting_manager_id: string | null; product_code_id: string | null }> = {};
+      if (slittingIds.length > 0) {
+        const { data: slittingRows } = await supabase
+          .from("slitting_entries")
+          .select("id, cut_width_mm, slitting_manager_id, product_code_id")
+          .in("id", slittingIds);
+        slittingById = Object.fromEntries(
+          (((slittingRows as any[]) ?? []).map((s) => [s.id, s]))
+        );
+      }
+      const productIds = Array.from(new Set([
+        ...directProductIds,
+        ...Object.values(slittingById).map((s) => s.product_code_id).filter(Boolean),
+      ])) as string[];
+      let productById: Record<string, { code: string }> = {};
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("product_codes")
+          .select("id, code")
+          .in("id", productIds);
+        productById = Object.fromEntries((((products as any[]) ?? []).map((p) => [p.id, { code: p.code }])));
+      }
+      list = list.map((r) => {
+        const linkedSlitting = r.slitting_entry_id ? slittingById[r.slitting_entry_id] : null;
+        const productId = r.product_code_id ?? linkedSlitting?.product_code_id ?? null;
+        return {
+          ...r,
+          slitting_entries: linkedSlitting ? {
+            ...linkedSlitting,
+            product_codes: productId ? productById[productId] ?? null : null,
+          } : {
+            cut_width_mm: null,
+            product_codes: productId ? productById[productId] ?? null : null,
+          },
+        };
+      });
       // Prefer entries the user logged themselves; if any exist with mismatched
       // operator_id but the underlying slitting entry is theirs, include those too.
       list = list.filter((r) =>
