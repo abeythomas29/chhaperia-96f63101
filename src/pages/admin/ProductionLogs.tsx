@@ -691,47 +691,7 @@ export default function ProductionLogs() {
         </DialogContent>
       </Dialog>
 
-      {/* 36P (36-Head Production) Dialog */}
-      <Dialog open={!!h36Entry} onOpenChange={(open) => !open && setH36Entry(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">36P</span>
-              36-Head Production
-            </DialogTitle>
-            <DialogDescription>
-              {h36Entry?.product_codes?.code ?? "—"} · linked 36-head production entries for this product
-            </DialogDescription>
-          </DialogHeader>
-          {h36Entry && (() => {
-            const list = head36ByProduct[h36Entry.product_code_id] ?? [];
-            if (list.length === 0) {
-              return <p className="text-sm text-muted-foreground py-4 text-center">No 36-head production recorded for this product.</p>;
-            }
-            return (
-              <div className="space-y-2">
-                {list.map((h: any) => (
-                  <div key={h.id} className="border rounded-md p-3 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{format(new Date(h.date), "dd/MM/yy")}</span>
-                      <span className="text-xs text-muted-foreground">Rolls produced: {h.rolls_produced ?? "—"}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div><span className="text-muted-foreground">Tape Width:</span> <span className="font-mono">{h.roll_width_mm ?? "—"} mm</span></div>
-                      <div><span className="text-muted-foreground">Length/Tape:</span> <span className="font-mono">{h.length_per_tape_mtr ?? "—"} mtr</span></div>
-                      <div><span className="text-muted-foreground">Thickness:</span> <span className="font-mono">{h.thickness_mm ?? "—"} mm</span></div>
-                    </div>
-                    {h.notes && <p className="text-xs text-muted-foreground italic">{h.notes}</p>}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setH36Entry(null)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* LR (Lab Report) Dialog */}
       <Dialog open={!!reportEntry} onOpenChange={(open) => !open && setReportEntry(null)}>
