@@ -651,7 +651,7 @@ export type Database = {
       }
       stock_issues: {
         Row: {
-          client_id: string
+          client_id: string | null
           created_at: string
           date: string
           id: string
@@ -659,12 +659,14 @@ export type Database = {
           notes: string | null
           product_code_id: string
           quantity: number
+          recipient_type: string
+          recipient_user_id: string | null
           thickness_mm: number | null
           unit: string
           updated_at: string
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -672,12 +674,14 @@ export type Database = {
           notes?: string | null
           product_code_id: string
           quantity: number
+          recipient_type?: string
+          recipient_user_id?: string | null
           thickness_mm?: number | null
           unit?: string
           updated_at?: string
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -685,6 +689,8 @@ export type Database = {
           notes?: string | null
           product_code_id?: string
           quantity?: number
+          recipient_type?: string
+          recipient_user_id?: string | null
           thickness_mm?: number | null
           unit?: string
           updated_at?: string
@@ -710,6 +716,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_codes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_issues_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
