@@ -37,9 +37,25 @@ interface FinishedProduct {
   available: number;
 }
 
+interface StockEntry {
+  id: string;
+  raw_material_id: string;
+  quantity: number;
+  date: string;
+  lot_number: string | null;
+  supplier: string | null;
+  pallets: number | null;
+  thickness_mm: number | null;
+  gsm: number | null;
+  notes: string | null;
+  added_by: string;
+  created_at: string;
+}
+
 export default function InventoryView() {
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [products, setProducts] = useState<FinishedProduct[]>([]);
+  const [stockEntries, setStockEntries] = useState<StockEntry[]>([]);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
@@ -56,6 +72,7 @@ export default function InventoryView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(new Set());
 
   const fetchMaterials = async () => {
     const { data } = await supabase.from("raw_materials").select("*").order("name");
