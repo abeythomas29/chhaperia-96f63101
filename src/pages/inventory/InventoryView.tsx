@@ -120,7 +120,7 @@ export default function InventoryView() {
     setProducts(list);
   };
 
-  useEffect(() => { fetchMaterials(); fetchProducts(); }, []);
+  useEffect(() => { fetchMaterials(); fetchProducts(); fetchStockEntries(); }, []);
 
   const addMaterial = async () => {
     if (!newName.trim()) return;
