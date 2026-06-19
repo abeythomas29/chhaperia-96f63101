@@ -54,12 +54,20 @@ interface ProductCode {
   code: string;
 }
 
+interface ProductionManager {
+  user_id: string;
+  name: string;
+  employee_id: string | null;
+}
+
+
 export default function StockManagement() {
   const { user } = useAuth();
   const [summaries, setSummaries] = useState<StockSummary[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
+  const [productionManagers, setProductionManagers] = useState<ProductionManager[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [inPage, setInPage] = useState(1);
@@ -69,13 +77,16 @@ export default function StockManagement() {
   // Issue dialog
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueProductCodeId, setIssueProductCodeId] = useState("");
+  const [issueRecipientType, setIssueRecipientType] = useState<"client" | "production_manager">("client");
   const [issueClientId, setIssueClientId] = useState("");
+  const [issueRecipientUserId, setIssueRecipientUserId] = useState("");
   const [issueQuantity, setIssueQuantity] = useState("");
   const [issueUnit, setIssueUnit] = useState("meters");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [issueThickness, setIssueThickness] = useState("");
   const [issuing, setIssuing] = useState(false);
+
 
   // Edit thickness dialog
   const [editThicknessOpen, setEditThicknessOpen] = useState(false);
@@ -96,9 +107,19 @@ export default function StockManagement() {
     // Fetch stock issues (OUT)
     const { data: issueData } = await supabase
       .from("stock_issues")
-      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
+      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, recipient_type, recipient_user_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
       .order("date", { ascending: false })
       .limit(1000);
+
+    // Resolve production manager recipient names for OUT issues
+    const recipientUserIds = Array.from(
+      new Set(((issueData ?? []) as any[]).map((i) => i.recipient_user_id).filter(Boolean))
+    );
+    const { data: recipientProfiles } = recipientUserIds.length
+      ? await supabase.from("profiles").select("user_id, name").in("user_id", recipientUserIds)
+      : { data: [] as any[] };
+    const recipientMap = new Map(((recipientProfiles ?? []) as any[]).map((p) => [p.user_id, p.name]));
+
 
     // Fetch sales (OUT) – finished product sales also reduce stock and should appear in the ledger
     // Note: sales table has no FK constraints, so we cannot use embedded joins. Fetch flat and map locally.
@@ -129,12 +150,29 @@ export default function StockManagement() {
     }));
 
     // Fetch dropdowns
-    const [{ data: cl }, { data: pc }] = await Promise.all([
+    const [{ data: cl }, { data: pc }, { data: pmRoles }] = await Promise.all([
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
       supabase.from("product_codes").select("id, code").eq("status", "active").order("code"),
+      supabase.from("user_roles").select("user_id").eq("role", "production_manager"),
     ]);
     setClients(cl ?? []);
     setProductCodes(pc ?? []);
+
+    const pmUserIds = Array.from(new Set(((pmRoles ?? []) as any[]).map((r) => r.user_id)));
+    if (pmUserIds.length) {
+      const { data: pmProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, employee_id, status")
+        .in("user_id", pmUserIds);
+      const list = ((pmProfiles ?? []) as any[])
+        .filter((p) => (p.status ?? "active") === "active")
+        .map((p) => ({ user_id: p.user_id, name: p.name, employee_id: p.employee_id }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setProductionManagers(list);
+    } else {
+      setProductionManagers([]);
+    }
+
 
     // Build per-product-code totals and thickness breakdowns
     const pcTotals = new Map<string, { code: string; unit: string; produced: number }>();
@@ -220,7 +258,10 @@ export default function StockManagement() {
         type: "OUT",
         product_code: i.product_codes?.code ?? "—",
         thickness_mm: i.thickness_mm != null ? Number(i.thickness_mm) : null,
-        client_name: i.company_clients?.name ?? "—",
+        client_name: i.recipient_type === "production_manager"
+          ? `Production Mgr: ${recipientMap.get(i.recipient_user_id) ?? "Unknown"}`
+          : (i.company_clients?.name ?? "—"),
+
         quantity: Number(i.quantity),
         unit: i.unit,
         notes: i.notes,
@@ -261,7 +302,15 @@ export default function StockManagement() {
   });
 
   const handleIssue = async () => {
-    if (!user || !issueProductCodeId || !issueClientId || !issueQuantity) return;
+    if (!user || !issueProductCodeId || !issueQuantity) return;
+    if (issueRecipientType === "client" && !issueClientId) {
+      toast({ title: "Select a client", variant: "destructive" });
+      return;
+    }
+    if (issueRecipientType === "production_manager" && !issueRecipientUserId) {
+      toast({ title: "Select a production manager", variant: "destructive" });
+      return;
+    }
 
     // Block over-issue: validate against computed available stock
     const stock = summaries.find((s) => s.product_code_id === issueProductCodeId);
@@ -279,7 +328,9 @@ export default function StockManagement() {
 
     const { error } = await supabase.from("stock_issues").insert({
       product_code_id: issueProductCodeId,
-      client_id: issueClientId,
+      recipient_type: issueRecipientType,
+      client_id: issueRecipientType === "client" ? issueClientId : null,
+      recipient_user_id: issueRecipientType === "production_manager" ? issueRecipientUserId : null,
       quantity: Number(issueQuantity),
       unit: issueUnit,
       thickness_mm: issueThickness ? Number(issueThickness) : null,
@@ -301,13 +352,16 @@ export default function StockManagement() {
 
   const resetIssueForm = () => {
     setIssueProductCodeId("");
+    setIssueRecipientType("client");
     setIssueClientId("");
+    setIssueRecipientUserId("");
     setIssueQuantity("");
     setIssueUnit("meters");
     setIssueThickness("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
+
 
   const openIssueForProduct = (pcId: string, unit: string) => {
     setIssueProductCodeId(pcId);
@@ -393,7 +447,7 @@ export default function StockManagement() {
                   className="w-full mt-3"
                   onClick={() => openIssueForProduct(s.product_code_id, s.unit)}
                 >
-                  Issue to Client
+                  Issue
                 </Button>
               </CardContent>
             </Card>
@@ -498,7 +552,7 @@ export default function StockManagement() {
                       <TableHead>Source</TableHead>
                       <TableHead>Product Code</TableHead>
                       <TableHead className="text-right">Thickness (mm)</TableHead>
-                      <TableHead>Client</TableHead>
+                      <TableHead>Recipient</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>By</TableHead>
@@ -558,15 +612,34 @@ export default function StockManagement() {
 
       {/* Issue Stock Dialog */}
       <Dialog open={issueOpen} onOpenChange={(open) => { if (!open) { setIssueOpen(false); resetIssueForm(); } }}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Issue Stock to Client</DialogTitle>
-            <DialogDescription>Select a product, client, and quantity to issue.</DialogDescription>
+            <DialogTitle>Issue Stock</DialogTitle>
+            <DialogDescription>Issue stock to a client or to a production manager.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Issue To</Label>
+                <Select
+                  value={issueRecipientType}
+                  onValueChange={(v) => {
+                    setIssueRecipientType(v as "client" | "production_manager");
+                    setIssueClientId("");
+                    setIssueRecipientUserId("");
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="production_manager">Production Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Product Code</Label>
@@ -594,16 +667,31 @@ export default function StockManagement() {
                 );
               })()}
             </div>
-            <div className="space-y-2">
-              <Label>Client</Label>
-              <SearchableSelect
-                value={issueClientId}
-                onValueChange={setIssueClientId}
-                placeholder="Select client"
-                options={clients.map((c) => ({ value: c.id, label: c.name }))}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
+            {issueRecipientType === "client" ? (
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <SearchableSelect
+                  value={issueClientId}
+                  onValueChange={setIssueClientId}
+                  placeholder="Select client"
+                  options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Production Manager</Label>
+                <SearchableSelect
+                  value={issueRecipientUserId}
+                  onValueChange={setIssueRecipientUserId}
+                  placeholder={productionManagers.length ? "Select production manager" : "No production managers available"}
+                  options={productionManagers.map((m) => ({
+                    value: m.user_id,
+                    label: `${m.name}${m.employee_id ? ` · ${m.employee_id}` : ""}`,
+                  }))}
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Quantity ({issueUnit})</Label>
                 <Input type="number" min="0" step="0.01" value={issueQuantity} onChange={(e) => setIssueQuantity(e.target.value)} placeholder="0" />
@@ -625,9 +713,10 @@ export default function StockManagement() {
             </div>
             <div className="space-y-2">
               <Label>Notes (optional)</Label>
-              <Textarea value={issueNotes} onChange={(e) => setIssueNotes(e.target.value)} placeholder="e.g. Delivery challan #123" />
+              <Textarea rows={2} value={issueNotes} onChange={(e) => setIssueNotes(e.target.value)} placeholder="e.g. Delivery challan #123" />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIssueOpen(false); resetIssueForm(); }}>Cancel</Button>
             <Button onClick={handleIssue} disabled={issuing} className="bg-secondary hover:bg-secondary/90">

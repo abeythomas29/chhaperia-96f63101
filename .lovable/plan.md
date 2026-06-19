@@ -1,32 +1,49 @@
+
 ## Goal
-Bring back the lab report icon in Production Logs, re-add the 36P icon there too, make the RM / 36P / LR status circles correctly turn **green when data exists and red when not**, and confirm the Slitting Logs export is present and visible.
 
-## Changes
+Turn the per-card action and the issue dialog into a single "Issue" flow that can send stock either to a **Client** or to a **Production Manager** (by user ID), so production-bound stock is traceable to the manager who received it. Also tighten the dialog's vertical ratio.
 
-### 1. Production Logs — restore Lab Report (LR) icon
-- Add `reportEntry` state and a `LR` status button next to RM in the Actions column.
-- Green when `hasReport` is true (any of: gsm, thickness_mm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance from columns OR parsed from notes), red otherwise.
-- Clicking opens a dialog listing each lab field with its value (skipping empty ones), styled like the existing RM dialog.
+## UI changes — `src/pages/admin/StockManagement.tsx`
 
-### 2. Production Logs — restore 36P icon
-- Re-add the 36P status button next to RM/LR using existing `head36ByProduct` state.
-- Clicking opens the existing 36-Head Production dialog.
+1. Card button label: `Issue to Client` → `Issue`.
+2. Header button stays `Issue Stock`.
+3. Inside the dialog, add a **Recipient Type** segmented control / select at the top of the recipient row:
+   - `Client` (default)
+   - `Production Manager`
+4. The field below it switches based on the selection:
+   - Client → existing searchable client dropdown (active `company_clients`).
+   - Production Manager → searchable dropdown of users whose `user_roles.role` is `production_manager` (label: `Name · employee_id`).
+5. Dialog ratio fix: reduce vertical bloat — put Quantity / Thickness / Unit in a 3-col grid (already are), shrink Notes to `rows={2}`, set dialog `max-w-lg` and remove extra vertical spacing so it isn't a tall narrow column on wide screens. (Image shows it's too tall vs. width.)
+6. Inward/Outward ledger: in the "Client" column for OUT rows, show the recipient — client name OR `Production Mgr: <name>` when issued to a manager.
 
-### 3. Fix "green when data exists" for RM and 36P
-Investigate why circles stay red despite data:
+## Data fetching
 
-- **RM**: confirm `raw_material_usage(quantity_used, raw_materials(name, unit))` join returns rows. If the join silently fails (RLS on `raw_materials` / `raw_material_usage` blocking reads for admins), green never triggers. Plan: verify RLS allows admins to SELECT both tables; if not, add admin SELECT policies. Also treat `raw_material_included = true` as green even without usage rows.
-- **36P**: current logic groups `head36_entries` by `slitting_entries.product_code_id`, so a production entry only goes green if some slitting entry for the **same product code** has 36P data. This is the source of confusion — production and 36P aren't actually linked that way. Fix: scope the green state to production entries whose product code has at least one 36P run, and update the button title to read "36-head production exists for this product code".
+- Add a `productionManagers` list fetched via `user_roles` joined to `profiles` (filter `role = 'production_manager'`, `status = 'active'`).
+- On submit:
+  - If recipient = Client → insert `client_id` as today, `recipient_type = 'client'`, `recipient_user_id = null`.
+  - If recipient = Production Manager → insert `recipient_type = 'production_manager'`, `recipient_user_id = <selected>`, `client_id = null`.
 
-### 4. Slitting Logs — export
-- The Export CSV button already exists in the header (top-right of the card). Verify it's rendered and clickable; if anything is hiding it, fix the layout so it sits next to the title like in Production Logs.
-- No new export format unless requested.
+## Database migration
+
+`stock_issues` currently requires `client_id NOT NULL`. Migration will:
+
+- Add `recipient_type text NOT NULL DEFAULT 'client'` with check `in ('client','production_manager')`.
+- Add `recipient_user_id uuid NULL REFERENCES profiles(user_id)`.
+- Drop `NOT NULL` from `client_id`.
+- Add a row-level CHECK via trigger (not CHECK constraint) ensuring exactly one of `client_id` / `recipient_user_id` is set and matches `recipient_type`.
+- Backfill existing rows: `recipient_type = 'client'` (already the default).
+- Keep existing RLS/grants unchanged.
+
+## Read paths to update
+
+- `StockManagement.tsx` ledger: select `recipient_type, recipient_user_id` and resolve manager names via a profiles lookup; display accordingly.
+- `src/pages/worker/MyIssues.tsx`, `src/pages/admin/Dashboard.tsx`, `src/pages/admin/Products.tsx`, `src/pages/inventory/InventoryView.tsx`, `src/lib/stock.ts`: only touch where they render the recipient column, so manager-issued rows don't show `—`. No business-logic changes.
 
 ## Out of scope
-- Changing how 36P entries are linked to production at the DB level.
-- Adding lab fields to the Edit dialog (only the read-only LR view dialog is added).
 
-## Technical notes
-- Files: `src/pages/admin/ProductionLogs.tsx`, `src/pages/admin/SlittingLogs.tsx`.
-- Possible migration: SELECT policy for `admin` / `super_admin` on `raw_materials` and `raw_material_usage` if missing — only added if a quick `supabase--read_query` confirms the join returns empty for known entries.
-- Icon: reuse `FileText` (or text "LR") to match the RM/36P circle pattern (`h-7 w-7 rounded-full`, emerald-500 / red-500).
+- No new "production receipt" workflow yet — this only records who received the material. Tying it to completed production entries can come later.
+
+## Confirm before I build
+
+- OK to make `client_id` nullable and gate on `recipient_type`?
+- Should "Production Manager" recipients be limited to role `production_manager` only, or also include `slitting_manager`?
