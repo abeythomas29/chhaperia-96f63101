@@ -67,6 +67,7 @@ export default function StockManagement() {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
+  const [productionManagers, setProductionManagers] = useState<ProductionManager[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [inPage, setInPage] = useState(1);
@@ -76,13 +77,16 @@ export default function StockManagement() {
   // Issue dialog
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueProductCodeId, setIssueProductCodeId] = useState("");
+  const [issueRecipientType, setIssueRecipientType] = useState<"client" | "production_manager">("client");
   const [issueClientId, setIssueClientId] = useState("");
+  const [issueRecipientUserId, setIssueRecipientUserId] = useState("");
   const [issueQuantity, setIssueQuantity] = useState("");
   const [issueUnit, setIssueUnit] = useState("meters");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [issueThickness, setIssueThickness] = useState("");
   const [issuing, setIssuing] = useState(false);
+
 
   // Edit thickness dialog
   const [editThicknessOpen, setEditThicknessOpen] = useState(false);
