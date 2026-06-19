@@ -20,6 +20,8 @@ interface ThicknessRow { thickness_mm: string; rolls_count: string; length_per_r
 interface MaterialUsageRow {
   raw_material_id: string;
   quantity_used: string;
+  thickness_mm: string;
+  gsm: string;
 }
 
 interface RawMaterial {
@@ -27,6 +29,13 @@ interface RawMaterial {
   name: string;
   unit: string;
   current_stock: number;
+}
+
+interface StockVariant {
+  raw_material_id: string;
+  thickness_mm: number | null;
+  gsm: number | null;
+  total: number;
 }
 
 export default function ProductionEntry() {
@@ -81,17 +90,38 @@ export default function ProductionEntry() {
   const [materialUsage, setMaterialUsage] = useState<MaterialUsageRow[]>([]);
   const [materialsOpen, setMaterialsOpen] = useState(false);
 
+  const [stockVariants, setStockVariants] = useState<StockVariant[]>([]);
+
   const fetchData = async () => {
-    const [codesRes, catsRes, clientsRes, matsRes] = await Promise.all([
+    const [codesRes, catsRes, clientsRes, matsRes, stockRes] = await Promise.all([
       supabase.from("product_codes").select("id, code, category_id").eq("status", "active").order("code"),
       supabase.from("product_categories").select("id, name").eq("status", "active").order("name"),
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
       supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
+      supabase.from("raw_material_stock_entries").select("raw_material_id, thickness_mm, gsm, quantity"),
     ]);
     setProductCodes(codesRes.data ?? []);
     setCategories(catsRes.data ?? []);
     setClients(clientsRes.data ?? []);
     setRawMaterials(matsRes.data ?? []);
+
+    // Group stock entries into variants by material + thickness + gsm
+    const map = new Map<string, StockVariant>();
+    for (const row of (stockRes.data ?? []) as Array<{ raw_material_id: string; thickness_mm: number | null; gsm: number | null; quantity: number }>) {
+      const key = `${row.raw_material_id}|${row.thickness_mm ?? ""}|${row.gsm ?? ""}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.total += Number(row.quantity) || 0;
+      } else {
+        map.set(key, {
+          raw_material_id: row.raw_material_id,
+          thickness_mm: row.thickness_mm,
+          gsm: row.gsm,
+          total: Number(row.quantity) || 0,
+        });
+      }
+    }
+    setStockVariants(Array.from(map.values()));
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -140,7 +170,7 @@ export default function ProductionEntry() {
 
   // Material usage helpers
   const addMaterialRow = () => {
-    setMaterialUsage((prev) => [...prev, { raw_material_id: "", quantity_used: "" }]);
+    setMaterialUsage((prev) => [...prev, { raw_material_id: "", quantity_used: "", thickness_mm: "", gsm: "" }]);
   };
 
   const updateMaterialRow = (index: number, field: keyof MaterialUsageRow, value: string) => {
@@ -713,41 +743,87 @@ export default function ProductionEntry() {
             <CollapsibleContent className="mt-3 space-y-3">
               {materialUsage.map((row, idx) => {
                 const mat = rawMaterials.find((m) => m.id === row.raw_material_id);
+                const variants = row.raw_material_id
+                  ? stockVariants
+                      .filter((v) => v.raw_material_id === row.raw_material_id && (v.thickness_mm != null || v.gsm != null))
+                      .sort((a, b) => (a.thickness_mm ?? 0) - (b.thickness_mm ?? 0) || (a.gsm ?? 0) - (b.gsm ?? 0))
+                  : [];
+                const variantValue = `${row.thickness_mm || ""}|${row.gsm || ""}`;
                 return (
-                  <div key={idx} className="flex items-end gap-2">
-                    <div className="flex-1">
-                      {idx === 0 && <Label className="text-xs">Material</Label>}
-                      <Select value={row.raw_material_id} onValueChange={(v) => updateMaterialRow(idx, "raw_material_id", v)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select material" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAvailableMaterials(row.raw_material_id).map((m) => (
-                            <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {mat && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Stock: {mat.current_stock.toLocaleString()} {mat.unit}
-                        </p>
-                      )}
+                  <div key={idx} className="space-y-2 border border-border/50 rounded-md p-2">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        {idx === 0 && <Label className="text-xs">Material</Label>}
+                        <Select value={row.raw_material_id} onValueChange={(v) => {
+                          updateMaterialRow(idx, "raw_material_id", v);
+                          updateMaterialRow(idx, "thickness_mm", "");
+                          updateMaterialRow(idx, "gsm", "");
+                        }}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select material" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableMaterials(row.raw_material_id).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {mat && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Stock: {mat.current_stock.toLocaleString()} {mat.unit}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-24">
+                        {idx === 0 && <Label className="text-xs">Qty</Label>}
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          className="h-9 text-right"
+                          value={row.quantity_used}
+                          onChange={(e) => updateMaterialRow(idx, "quantity_used", e.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => removeMaterialRow(idx)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                    <div className="w-24">
-                      {idx === 0 && <Label className="text-xs">Qty</Label>}
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.001"
-                        className="h-9 text-right"
-                        value={row.quantity_used}
-                        onChange={(e) => updateMaterialRow(idx, "quantity_used", e.target.value)}
-                        placeholder="0"
-                      />
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => removeMaterialRow(idx)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {row.raw_material_id && (
+                      <div>
+                        <Label className="text-xs">Thickness / GSM available</Label>
+                        {variants.length > 0 ? (
+                          <Select
+                            value={variantValue === "|" ? "" : variantValue}
+                            onValueChange={(v) => {
+                              const [t, g] = v.split("|");
+                              updateMaterialRow(idx, "thickness_mm", t);
+                              updateMaterialRow(idx, "gsm", g);
+                            }}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select specification" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {variants.map((v) => {
+                                const parts: string[] = [];
+                                if (v.thickness_mm != null) parts.push(`${v.thickness_mm} mm`);
+                                if (v.gsm != null) parts.push(`${v.gsm} gsm`);
+                                const key = `${v.thickness_mm ?? ""}|${v.gsm ?? ""}`;
+                                return (
+                                  <SelectItem key={key} value={key}>
+                                    {parts.join(" · ")} — {v.total.toLocaleString()} {mat?.unit ?? ""} in stock
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No thickness/GSM variants recorded for this material.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
