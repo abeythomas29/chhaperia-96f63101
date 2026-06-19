@@ -149,9 +149,8 @@ export default function StockManagement() {
     setClients(cl ?? []);
     setProductCodes(pc ?? []);
 
-    const list = ((allProfiles ?? []) as any[])
-      .filter((p) => (p.status ?? "active") === "active")
-      .map((p) => ({ user_id: p.user_id, name: p.name, employee_id: p.employee_id }))
+    const list: ProductionManager[] = ((pmData ?? []) as any[])
+      .map((p) => ({ user_id: p.user_id, name: p.name }))
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
     setProductionManagers(list);
 
