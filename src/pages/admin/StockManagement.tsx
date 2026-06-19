@@ -103,21 +103,13 @@ export default function StockManagement() {
       .order("date", { ascending: false })
       .limit(1000);
 
-    // Fetch stock issues (OUT)
+    // Fetch stock issues (OUT) — embed recipient profile via FK
     const { data: issueData } = await supabase
       .from("stock_issues")
-      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, recipient_type, recipient_user_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
+      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, recipient_type, recipient_user_id, product_codes(code), company_clients(name), profiles:issued_by(name), recipient:profiles!stock_issues_recipient_user_id_fkey(name)")
       .order("date", { ascending: false })
       .limit(1000);
 
-    // Resolve production manager recipient names for OUT issues
-    const recipientUserIds = Array.from(
-      new Set(((issueData ?? []) as any[]).map((i) => i.recipient_user_id).filter(Boolean))
-    );
-    const { data: recipientProfiles } = recipientUserIds.length
-      ? await supabase.from("profiles").select("user_id, name").in("user_id", recipientUserIds)
-      : { data: [] as any[] };
-    const recipientMap = new Map(((recipientProfiles ?? []) as any[]).map((p) => [p.user_id, p.name]));
 
 
     // Fetch sales (OUT) – finished product sales also reduce stock and should appear in the ledger
