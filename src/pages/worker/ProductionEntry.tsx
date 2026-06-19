@@ -90,17 +90,38 @@ export default function ProductionEntry() {
   const [materialUsage, setMaterialUsage] = useState<MaterialUsageRow[]>([]);
   const [materialsOpen, setMaterialsOpen] = useState(false);
 
+  const [stockVariants, setStockVariants] = useState<StockVariant[]>([]);
+
   const fetchData = async () => {
-    const [codesRes, catsRes, clientsRes, matsRes] = await Promise.all([
+    const [codesRes, catsRes, clientsRes, matsRes, stockRes] = await Promise.all([
       supabase.from("product_codes").select("id, code, category_id").eq("status", "active").order("code"),
       supabase.from("product_categories").select("id, name").eq("status", "active").order("name"),
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
       supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
+      supabase.from("raw_material_stock_entries").select("raw_material_id, thickness_mm, gsm, quantity"),
     ]);
     setProductCodes(codesRes.data ?? []);
     setCategories(catsRes.data ?? []);
     setClients(clientsRes.data ?? []);
     setRawMaterials(matsRes.data ?? []);
+
+    // Group stock entries into variants by material + thickness + gsm
+    const map = new Map<string, StockVariant>();
+    for (const row of (stockRes.data ?? []) as Array<{ raw_material_id: string; thickness_mm: number | null; gsm: number | null; quantity: number }>) {
+      const key = `${row.raw_material_id}|${row.thickness_mm ?? ""}|${row.gsm ?? ""}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.total += Number(row.quantity) || 0;
+      } else {
+        map.set(key, {
+          raw_material_id: row.raw_material_id,
+          thickness_mm: row.thickness_mm,
+          gsm: row.gsm,
+          total: Number(row.quantity) || 0,
+        });
+      }
+    }
+    setStockVariants(Array.from(map.values()));
   };
 
   useEffect(() => { fetchData(); }, []);
