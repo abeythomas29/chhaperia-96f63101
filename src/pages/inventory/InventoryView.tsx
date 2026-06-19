@@ -79,6 +79,11 @@ export default function InventoryView() {
     setMaterials(data ?? []);
   };
 
+  const fetchStockEntries = async () => {
+    const { data } = await supabase.from("raw_material_stock_entries").select("*").order("created_at", { ascending: false }).limit(2000);
+    setStockEntries((data ?? []) as StockEntry[]);
+  };
+
   const fetchProducts = async () => {
     const [{ data: prodData }, { data: issueData }, { data: salesData }, { data: codes }] = await Promise.all([
       supabase.from("production_entries").select("product_code_id, total_quantity, quantity_per_roll, rolls_count, unit").limit(2000),
