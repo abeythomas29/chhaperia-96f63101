@@ -552,7 +552,7 @@ export default function StockManagement() {
                       <TableHead>Source</TableHead>
                       <TableHead>Product Code</TableHead>
                       <TableHead className="text-right">Thickness (mm)</TableHead>
-                      <TableHead>Client</TableHead>
+                      <TableHead>Recipient</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>By</TableHead>
