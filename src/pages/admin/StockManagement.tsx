@@ -447,7 +447,7 @@ export default function StockManagement() {
                   className="w-full mt-3"
                   onClick={() => openIssueForProduct(s.product_code_id, s.unit)}
                 >
-                  Issue to Client
+                  Issue
                 </Button>
               </CardContent>
             </Card>
