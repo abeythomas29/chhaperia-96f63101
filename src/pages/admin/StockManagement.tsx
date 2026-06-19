@@ -150,12 +150,29 @@ export default function StockManagement() {
     }));
 
     // Fetch dropdowns
-    const [{ data: cl }, { data: pc }] = await Promise.all([
+    const [{ data: cl }, { data: pc }, { data: pmRoles }] = await Promise.all([
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
       supabase.from("product_codes").select("id, code").eq("status", "active").order("code"),
+      supabase.from("user_roles").select("user_id").eq("role", "production_manager"),
     ]);
     setClients(cl ?? []);
     setProductCodes(pc ?? []);
+
+    const pmUserIds = Array.from(new Set(((pmRoles ?? []) as any[]).map((r) => r.user_id)));
+    if (pmUserIds.length) {
+      const { data: pmProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, employee_id, status")
+        .in("user_id", pmUserIds);
+      const list = ((pmProfiles ?? []) as any[])
+        .filter((p) => (p.status ?? "active") === "active")
+        .map((p) => ({ user_id: p.user_id, name: p.name, employee_id: p.employee_id }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setProductionManagers(list);
+    } else {
+      setProductionManagers([]);
+    }
+
 
     // Build per-product-code totals and thickness breakdowns
     const pcTotals = new Map<string, { code: string; unit: string; produced: number }>();
