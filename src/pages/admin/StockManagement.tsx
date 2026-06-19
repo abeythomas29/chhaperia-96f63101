@@ -240,7 +240,7 @@ export default function StockManagement() {
         product_code: i.product_codes?.code ?? "—",
         thickness_mm: i.thickness_mm != null ? Number(i.thickness_mm) : null,
         client_name: i.recipient_type === "production_manager"
-          ? `Production Mgr: ${recipientMap.get(i.recipient_user_id) ?? "Unknown"}`
+          ? `Production Mgr: ${i.recipient?.name ?? "Unknown"}`
           : (i.company_clients?.name ?? "—"),
 
         quantity: Number(i.quantity),
