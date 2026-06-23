@@ -704,27 +704,45 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
                 />
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label>Quantity ({issueUnit})</Label>
                 <Input type="number" min="0" step="0.01" value={issueQuantity} onChange={(e) => setIssueQuantity(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit</Label>
+                <Select value={issueUnit} onValueChange={(v) => setIssueUnit(v as "sqm" | "kg")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
+                    <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Thickness (mm)</Label>
                 <Input type="number" min="0" step="0.01" value={issueThickness} onChange={(e) => setIssueThickness(e.target.value)} placeholder="Optional" />
               </div>
               <div className="space-y-2">
-                <Label>Unit</Label>
-                <Select value={issueUnit} onValueChange={setIssueUnit}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="meters">Meters</SelectItem>
-                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
-                    <SelectItem value="kg">Kg</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>GSM</Label>
+                <Input type="number" min="0" step="1" value={issueGsm} onChange={(e) => setIssueGsm(e.target.value)} placeholder="for conversion" />
               </div>
             </div>
+            {issueQuantity && (() => {
+              const qty = Number(issueQuantity);
+              const gsmNum = issueGsm ? Number(issueGsm) : 0;
+              if (!qty || !gsmNum) return (
+                <p className="text-xs text-muted-foreground">Enter GSM to auto-convert between sqm and kg.</p>
+              );
+              const sqm = issueUnit === "sqm" ? qty : (qty * 1000) / gsmNum;
+              const kg = issueUnit === "kg" ? qty : (qty * gsmNum) / 1000;
+              return (
+                <div className="flex gap-4 text-sm p-2 rounded bg-muted">
+                  <span>≈ <strong>{sqm.toFixed(2)} sqm</strong></span>
+                  <span>≈ <strong>{kg.toFixed(2)} kg</strong></span>
+                </div>
+              );
+            })()}
             <div className="space-y-2">
               <Label>Notes (optional)</Label>
               <Textarea rows={2} value={issueNotes} onChange={(e) => setIssueNotes(e.target.value)} placeholder="e.g. Delivery challan #123" />
