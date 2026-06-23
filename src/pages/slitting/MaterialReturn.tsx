@@ -327,13 +327,14 @@ export default function MaterialReturn() {
       slitting_entry_id: selected.anchorId,
       client_id: form.client_id || null,
       date: isoDate,
-      returned_quantity: qtyToSave,
+      returned_quantity: isWastage ? 0 : qtyToSave,
       unit: isWastage ? "sqmtr" : form.unit,
       notes: form.notes || null,
       returned_by: user.id,
       created_at: new Date(isoDate + "T12:00:00").toISOString(),
       return_type: form.return_type,
       location: form.return_type === "reusable" ? (form.location || null) : null,
+      wastage_quantity: isWastage ? qtyToSave : null,
     } as SlittingReturnInsert;
 
 
