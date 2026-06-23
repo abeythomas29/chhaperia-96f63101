@@ -246,13 +246,16 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
 
   const addStockEntry = async () => {
     if (!stockMaterialId || !stockQty || !user) return;
+    const packNum = stockPackCount ? Number(stockPackCount) : null;
     const { error } = await supabase.from("raw_material_stock_entries").insert({
       raw_material_id: stockMaterialId,
       quantity: Number(stockQty),
       date: stockDate,
       lot_number: stockLot.trim() || null,
       supplier: stockSupplier.trim() || null,
-      pallets: stockPallets ? Number(stockPallets) : null,
+      pallets: packNum,
+      pallet_count: stockPackType === "pallet" ? packNum : null,
+      roll_count: stockPackType === "roll" ? packNum : null,
       thickness_mm: stockThickness ? Number(stockThickness) : null,
       gsm: stockGsm ? Number(stockGsm) : null,
       notes: stockNotes || null,
@@ -265,7 +268,8 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
     setStockQty("");
     setStockLot("");
     setStockSupplier("");
-    setStockPallets("");
+    setStockPackType("pallet");
+    setStockPackCount("");
     setStockThickness("");
     setStockGsm("");
     setStockNotes("");
