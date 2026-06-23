@@ -112,7 +112,7 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
   const [recipients, setRecipients] = useState<RecipientOption[]>([]);
 
   const fetchData = async () => {
-    const [matRes, entryRes, saleRes] = await Promise.all([
+    const [matRes, entryRes, saleRes, recipRes] = await Promise.all([
       supabase.from("raw_materials").select("*").order("name"),
       supabase.from("raw_material_stock_entries").select("*").order("created_at", { ascending: false }).limit(2000),
       supabase
@@ -121,10 +121,16 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
         .eq("item_type", "raw_material")
         .order("created_at", { ascending: false })
         .limit(2000),
+      supabase.rpc("list_production_manager_recipients"),
     ]);
     setMaterials(matRes.data ?? []);
+    setRecipients((recipRes.data as RecipientOption[]) ?? []);
 
-    const inwardEntries = (entryRes.data ?? []) as StockEntry[];
+    const rawEntries = (entryRes.data ?? []) as any[];
+    const inwardEntries: StockEntry[] = rawEntries.map((e) => ({
+      ...e,
+      kind: (e.entry_type === "out" ? "issue" : "in") as "in" | "issue",
+    }));
     const salesRows = (saleRes.data ?? []) as any[];
 
     // Resolve client names for sales (some sales reference company_clients by id)
@@ -153,12 +159,15 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
         kind: "out",
       }));
 
-    const allEntries = [...inwardEntries.map((e) => ({ ...e, kind: "in" as const })), ...outwardEntries]
+    const allEntries = [...inwardEntries, ...outwardEntries]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     // Resolve names
     const materialMap = new Map((matRes.data ?? []).map((m: RawMaterial) => [m.id, m]));
-    const userIds = [...new Set(allEntries.map((e) => e.added_by).filter(Boolean))];
+    const userIds = [...new Set([
+      ...allEntries.map((e) => e.added_by).filter(Boolean),
+      ...inwardEntries.map((e) => e.issued_to_user_id).filter(Boolean) as string[],
+    ])];
     let profileMap = new Map<string, string>();
     if (userIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, name").in("user_id", userIds);
@@ -169,6 +178,10 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
       material_name: materialMap.get(e.raw_material_id)?.name ?? "Unknown",
       material_unit: materialMap.get(e.raw_material_id)?.unit ?? "",
       person_name: profileMap.get(e.added_by) ?? "Unknown",
+      // For "issue" rows, prefer showing recipient as the supplier/from column
+      supplier: e.kind === "issue" && e.issued_to_user_id
+        ? `→ ${profileMap.get(e.issued_to_user_id) ?? "Recipient"}`
+        : e.supplier,
     })));
   };
 
