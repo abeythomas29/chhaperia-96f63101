@@ -30,6 +30,7 @@ export default function InventoryManagerLayout() {
   const navItems = [
     { to: "/inventory", label: "Add Stock", icon: ArrowDownToLine, end: true },
     { to: "/inventory/view", label: "Inventory", icon: Package, end: false },
+    { to: "/inventory/manage", label: "Inventory Management", icon: Warehouse, end: false },
     { to: "/inventory/history", label: "My History", icon: History, end: false },
   ];
   if (isSalesManager) {
