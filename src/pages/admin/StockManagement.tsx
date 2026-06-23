@@ -605,7 +605,7 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
 
       {/* Issue Stock Dialog */}
       <Dialog open={issueOpen} onOpenChange={(open) => { if (!open) { setIssueOpen(false); resetIssueForm(); } }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Issue Stock</DialogTitle>
             <DialogDescription>Issue stock to a client or to a production manager.</DialogDescription>
