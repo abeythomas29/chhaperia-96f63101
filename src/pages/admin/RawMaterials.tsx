@@ -269,6 +269,83 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
     fetchData();
   };
 
+  // Auto-fill GSM/thickness from latest stock entry for selected material
+  useEffect(() => {
+    if (!issueMaterialId) return;
+    const latest = stockEntries
+      .filter((e) => e.raw_material_id === issueMaterialId && e.kind === "in")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    if (latest) {
+      if (!issueGsm && latest.gsm != null) setIssueGsm(String(latest.gsm));
+      if (!issueThickness && latest.thickness_mm != null) setIssueThickness(String(latest.thickness_mm));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issueMaterialId]);
+
+  const resetIssueForm = () => {
+    setIssueMaterialId("");
+    setIssueUnit("kg");
+    setIssueQty("");
+    setIssueGsm("");
+    setIssueThickness("");
+    setIssueDate(format(new Date(), "yyyy-MM-dd"));
+    setIssueRecipientId("");
+    setIssueNotes("");
+  };
+
+  const issueMaterial = async () => {
+    if (!user) return;
+    if (!issueMaterialId || !issueQty) {
+      toast({ title: "Missing fields", description: "Pick a material and enter a quantity.", variant: "destructive" });
+      return;
+    }
+    const qty = Number(issueQty);
+    if (!isFinite(qty) || qty <= 0) {
+      toast({ title: "Invalid quantity", variant: "destructive" });
+      return;
+    }
+    let qtyKg = qty;
+    let gsmNum: number | null = issueGsm ? Number(issueGsm) : null;
+    if (issueUnit === "sqm") {
+      if (!gsmNum || gsmNum <= 0) {
+        toast({ title: "GSM required", description: "GSM is required to issue in sqm.", variant: "destructive" });
+        return;
+      }
+      qtyKg = (qty * gsmNum) / 1000;
+    }
+    const material = materials.find((m) => m.id === issueMaterialId);
+    if (material && Number(material.current_stock) < qtyKg) {
+      toast({
+        title: "Insufficient stock",
+        description: `Only ${Number(material.current_stock).toLocaleString()} ${material.unit} available; trying to deduct ${qtyKg.toFixed(2)} kg.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await supabase.from("raw_material_stock_entries").insert({
+      raw_material_id: issueMaterialId,
+      quantity: qtyKg,
+      date: issueDate,
+      thickness_mm: issueThickness ? Number(issueThickness) : null,
+      gsm: gsmNum,
+      notes: issueNotes || null,
+      added_by: user.id,
+      entry_type: "out",
+      issue_unit: issueUnit,
+      issue_quantity: qty,
+      issue_quantity_kg: qtyKg,
+      issued_to_user_id: issueRecipientId || null,
+    } as any);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Material issued", description: `Deducted ${qtyKg.toFixed(2)} kg from inventory.` });
+    setIssueOpen(false);
+    resetIssueForm();
+    fetchData();
+  };
+
   const openEdit = (m: RawMaterial) => {
     setEditMaterial(m);
     setEditName(m.name);
