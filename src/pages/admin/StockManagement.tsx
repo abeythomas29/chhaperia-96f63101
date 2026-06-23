@@ -388,24 +388,24 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
           filteredSummaries.map((s) => (
             <Card key={s.product_code_id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  {s.code}
+                <CardTitle className="text-base flex items-center gap-2 break-words">
+                  <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="break-words">{s.code}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Produced</p>
-                    <p className="text-lg font-semibold text-green-600">{s.produced.toLocaleString()} {s.unit}</p>
+                    <p className="text-base md:text-lg font-semibold text-green-600 break-words">{s.produced.toLocaleString()} {s.unit}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Issued</p>
-                    <p className="text-lg font-semibold text-red-500">{s.issued.toLocaleString()} {s.unit}</p>
+                    <p className="text-base md:text-lg font-semibold text-red-500 break-words">{s.issued.toLocaleString()} {s.unit}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Available</p>
-                    <p className={`text-lg font-bold ${s.available > 0 ? "text-primary" : "text-destructive"}`}>
+                    <p className={`text-base md:text-lg font-bold break-words ${s.available > 0 ? "text-primary" : "text-destructive"}`}>
                       {s.available.toLocaleString()} {s.unit}
                     </p>
                   </div>
