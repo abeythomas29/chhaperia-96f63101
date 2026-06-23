@@ -351,9 +351,11 @@ export type Database = {
           issued_to_user_id: string | null
           lot_number: string | null
           notes: string | null
+          pallet_count: number | null
           pallets: number | null
           quantity: number
           raw_material_id: string
+          roll_count: number | null
           supplier: string | null
           thickness_mm: number | null
         }
@@ -370,9 +372,11 @@ export type Database = {
           issued_to_user_id?: string | null
           lot_number?: string | null
           notes?: string | null
+          pallet_count?: number | null
           pallets?: number | null
           quantity?: number
           raw_material_id: string
+          roll_count?: number | null
           supplier?: string | null
           thickness_mm?: number | null
         }
@@ -389,9 +393,11 @@ export type Database = {
           issued_to_user_id?: string | null
           lot_number?: string | null
           notes?: string | null
+          pallet_count?: number | null
           pallets?: number | null
           quantity?: number
           raw_material_id?: string
+          roll_count?: number | null
           supplier?: string | null
           thickness_mm?: number | null
         }
