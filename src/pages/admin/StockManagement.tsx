@@ -698,6 +698,7 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="meters">Meters</SelectItem>
+                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
                     <SelectItem value="kg">Kg</SelectItem>
                   </SelectContent>
                 </Select>
