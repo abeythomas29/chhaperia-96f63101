@@ -461,7 +461,8 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
                 Inward Supply (Production)
                 <span className="text-sm font-normal text-muted-foreground">({inData.length} entries)</span>
               </h2>
-              <div className="border rounded-lg">
+              <div className="border rounded-lg overflow-x-auto">
+
                 <Table>
                   <TableHeader>
                     <TableRow>
