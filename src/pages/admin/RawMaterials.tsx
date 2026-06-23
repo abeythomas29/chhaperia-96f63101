@@ -707,19 +707,28 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
               {filteredEntries.length === 0 ? (
                 <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No stock entries match your filters</TableCell></TableRow>
               ) : filteredEntries.map((e) => {
-                const isOut = e.kind === "out";
+                const isSale = e.kind === "out";
+                const isIssue = e.kind === "issue";
+                const isOut = isSale || isIssue;
+                const typeLabel = isSale ? "Sale" : isIssue ? "Issued" : "In";
+                const qtyDisplay = isIssue && e.issue_quantity != null && e.issue_unit
+                  ? `${Number(e.issue_quantity).toLocaleString()} ${e.issue_unit} → ${Number(e.quantity).toLocaleString()} kg`
+                  : `${Number(e.quantity).toLocaleString()} ${e.material_unit}`;
+                const canEditRow = isIssue
+                  ? false // issues are immutable in this view; deleting/editing trigger needs more UX
+                  : !isSale && !readOnly;
                 return (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell>
-                    <Badge variant={isOut ? "destructive" : "default"}>{isOut ? "Out (Sale)" : "In"}</Badge>
+                    <Badge variant={isOut ? "destructive" : "default"}>{typeLabel}</Badge>
                   </TableCell>
                   <TableCell>{e.material_name}</TableCell>
                   <TableCell>{e.supplier ?? "—"}</TableCell>
                   <TableCell className={`text-right font-mono ${isOut ? "text-destructive" : ""}`}>
-                    {isOut ? "−" : "+"}{Number(e.quantity).toLocaleString()} {e.material_unit}
+                    {isOut ? "−" : "+"}{qtyDisplay}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
+                  <TableCell className="text-muted-foreground">{isIssue ? (e.issue_unit ?? "kg") : e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.thickness_mm != null ? `${e.thickness_mm} mm` : "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.gsm != null ? `${e.gsm}` : "—"}</TableCell>
@@ -727,7 +736,7 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>
                   <TableCell className="text-right">
-                    {isOut || readOnly ? (
+                    {!canEditRow ? (
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (
                       <>
