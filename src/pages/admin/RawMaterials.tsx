@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package, ArrowDownToLine, Search, Pencil, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Package, ArrowDownToLine, ArrowUpFromLine, Search, Pencil, Trash2, ChevronRight, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -35,7 +35,17 @@ interface StockEntry {
   notes: string | null;
   added_by: string;
   created_at: string;
-  kind?: "in" | "out";
+  entry_type?: string | null;
+  issue_unit?: string | null;
+  issue_quantity?: number | null;
+  issue_quantity_kg?: number | null;
+  issued_to_user_id?: string | null;
+  kind?: "in" | "out" | "issue";
+}
+
+interface RecipientOption {
+  user_id: string;
+  name: string;
 }
 
 
@@ -89,8 +99,20 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
   const [stockGsm, setStockGsm] = useState("");
   const [stockNotes, setStockNotes] = useState("");
 
+  // Issue Material state
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueMaterialId, setIssueMaterialId] = useState("");
+  const [issueUnit, setIssueUnit] = useState<"kg" | "sqm">("kg");
+  const [issueQty, setIssueQty] = useState("");
+  const [issueGsm, setIssueGsm] = useState("");
+  const [issueThickness, setIssueThickness] = useState("");
+  const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [issueRecipientId, setIssueRecipientId] = useState("");
+  const [issueNotes, setIssueNotes] = useState("");
+  const [recipients, setRecipients] = useState<RecipientOption[]>([]);
+
   const fetchData = async () => {
-    const [matRes, entryRes, saleRes] = await Promise.all([
+    const [matRes, entryRes, saleRes, recipRes] = await Promise.all([
       supabase.from("raw_materials").select("*").order("name"),
       supabase.from("raw_material_stock_entries").select("*").order("created_at", { ascending: false }).limit(2000),
       supabase
@@ -99,10 +121,16 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
         .eq("item_type", "raw_material")
         .order("created_at", { ascending: false })
         .limit(2000),
+      supabase.rpc("list_production_manager_recipients"),
     ]);
     setMaterials(matRes.data ?? []);
+    setRecipients((recipRes.data as RecipientOption[]) ?? []);
 
-    const inwardEntries = (entryRes.data ?? []) as StockEntry[];
+    const rawEntries = (entryRes.data ?? []) as any[];
+    const inwardEntries: StockEntry[] = rawEntries.map((e) => ({
+      ...e,
+      kind: (e.entry_type === "out" ? "issue" : "in") as "in" | "issue",
+    }));
     const salesRows = (saleRes.data ?? []) as any[];
 
     // Resolve client names for sales (some sales reference company_clients by id)
@@ -131,12 +159,15 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
         kind: "out",
       }));
 
-    const allEntries = [...inwardEntries.map((e) => ({ ...e, kind: "in" as const })), ...outwardEntries]
+    const allEntries = [...inwardEntries, ...outwardEntries]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     // Resolve names
     const materialMap = new Map((matRes.data ?? []).map((m: RawMaterial) => [m.id, m]));
-    const userIds = [...new Set(allEntries.map((e) => e.added_by).filter(Boolean))];
+    const userIds = [...new Set([
+      ...allEntries.map((e) => e.added_by).filter(Boolean),
+      ...inwardEntries.map((e) => e.issued_to_user_id).filter(Boolean) as string[],
+    ])];
     let profileMap = new Map<string, string>();
     if (userIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, name").in("user_id", userIds);
@@ -147,6 +178,10 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
       material_name: materialMap.get(e.raw_material_id)?.name ?? "Unknown",
       material_unit: materialMap.get(e.raw_material_id)?.unit ?? "",
       person_name: profileMap.get(e.added_by) ?? "Unknown",
+      // For "issue" rows, prefer showing recipient as the supplier/from column
+      supplier: e.kind === "issue" && e.issued_to_user_id
+        ? `→ ${profileMap.get(e.issued_to_user_id) ?? "Recipient"}`
+        : e.supplier,
     })));
   };
 
@@ -234,6 +269,83 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
     fetchData();
   };
 
+  // Auto-fill GSM/thickness from latest stock entry for selected material
+  useEffect(() => {
+    if (!issueMaterialId) return;
+    const latest = stockEntries
+      .filter((e) => e.raw_material_id === issueMaterialId && e.kind === "in")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    if (latest) {
+      if (!issueGsm && latest.gsm != null) setIssueGsm(String(latest.gsm));
+      if (!issueThickness && latest.thickness_mm != null) setIssueThickness(String(latest.thickness_mm));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issueMaterialId]);
+
+  const resetIssueForm = () => {
+    setIssueMaterialId("");
+    setIssueUnit("kg");
+    setIssueQty("");
+    setIssueGsm("");
+    setIssueThickness("");
+    setIssueDate(format(new Date(), "yyyy-MM-dd"));
+    setIssueRecipientId("");
+    setIssueNotes("");
+  };
+
+  const issueMaterial = async () => {
+    if (!user) return;
+    if (!issueMaterialId || !issueQty) {
+      toast({ title: "Missing fields", description: "Pick a material and enter a quantity.", variant: "destructive" });
+      return;
+    }
+    const qty = Number(issueQty);
+    if (!isFinite(qty) || qty <= 0) {
+      toast({ title: "Invalid quantity", variant: "destructive" });
+      return;
+    }
+    let qtyKg = qty;
+    let gsmNum: number | null = issueGsm ? Number(issueGsm) : null;
+    if (issueUnit === "sqm") {
+      if (!gsmNum || gsmNum <= 0) {
+        toast({ title: "GSM required", description: "GSM is required to issue in sqm.", variant: "destructive" });
+        return;
+      }
+      qtyKg = (qty * gsmNum) / 1000;
+    }
+    const material = materials.find((m) => m.id === issueMaterialId);
+    if (material && Number(material.current_stock) < qtyKg) {
+      toast({
+        title: "Insufficient stock",
+        description: `Only ${Number(material.current_stock).toLocaleString()} ${material.unit} available; trying to deduct ${qtyKg.toFixed(2)} kg.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await supabase.from("raw_material_stock_entries").insert({
+      raw_material_id: issueMaterialId,
+      quantity: qtyKg,
+      date: issueDate,
+      thickness_mm: issueThickness ? Number(issueThickness) : null,
+      gsm: gsmNum,
+      notes: issueNotes || null,
+      added_by: user.id,
+      entry_type: "out",
+      issue_unit: issueUnit,
+      issue_quantity: qty,
+      issue_quantity_kg: qtyKg,
+      issued_to_user_id: issueRecipientId || null,
+    } as any);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Material issued", description: `Deducted ${qtyKg.toFixed(2)} kg from inventory.` });
+    setIssueOpen(false);
+    resetIssueForm();
+    fetchData();
+  };
+
   const openEdit = (m: RawMaterial) => {
     setEditMaterial(m);
     setEditName(m.name);
@@ -284,94 +396,164 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
     fetchData();
   };
 
+  const actionButtons = !readOnly ? (
+    <div className="flex flex-wrap gap-2">
+      <Dialog open={stockOpen} onOpenChange={setStockOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline"><ArrowDownToLine className="h-4 w-4 mr-2" />Add Stock</Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Add Stock (Purchase)</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Raw Material</Label>
+              <Select value={stockMaterialId} onValueChange={setStockMaterialId}>
+                <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                <SelectContent>{materials.filter(m => m.status === "active").map((m) => <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Quantity ({materials.find(m => m.id === stockMaterialId)?.unit ?? 'kg'})</Label>
+              <Input type="number" min="0" step="0.01" value={stockQty} onChange={(e) => setStockQty(e.target.value)} placeholder="0" />
+            </div>
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={stockDate} onChange={(e) => setStockDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Lot Number</Label>
+              <Input value={stockLot} onChange={(e) => setStockLot(e.target.value)} placeholder="e.g. LOT-2025-001" />
+            </div>
+            <div>
+              <Label>Supplier / From</Label>
+              <Input value={stockSupplier} onChange={(e) => setStockSupplier(e.target.value)} placeholder="e.g. Combined Origins Ltd" />
+            </div>
+            <div>
+              <Label>Pallets / Pieces</Label>
+              <Input type="number" min="0" step="1" value={stockPallets} onChange={(e) => setStockPallets(e.target.value)} placeholder="e.g. 29" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Thickness (mm)</Label>
+                <Input type="number" min="0" step="0.001" value={stockThickness} onChange={(e) => setStockThickness(e.target.value)} placeholder="e.g. 0.13" />
+              </div>
+              <div>
+                <Label>GSM</Label>
+                <Input type="number" min="0" step="0.01" value={stockGsm} onChange={(e) => setStockGsm(e.target.value)} placeholder="e.g. 80" />
+              </div>
+            </div>
+            <div>
+              <Label>Notes (optional)</Label>
+              <Input value={stockNotes} onChange={(e) => setStockNotes(e.target.value)} placeholder="e.g. invoice #" />
+            </div>
+            <Button onClick={addStockEntry} className="w-full bg-secondary hover:bg-secondary/90">Add Stock</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={issueOpen} onOpenChange={(o) => { setIssueOpen(o); if (!o) resetIssueForm(); }}>
+        <DialogTrigger asChild>
+          <Button variant="outline"><ArrowUpFromLine className="h-4 w-4 mr-2" />Issue Material</Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Issue Raw Material</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Raw Material</Label>
+              <Select value={issueMaterialId} onValueChange={setIssueMaterialId}>
+                <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                <SelectContent>{materials.filter(m => m.status === "active").map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {Number(m.current_stock).toLocaleString()} {m.unit} in stock</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Issue Unit</Label>
+                <Select value={issueUnit} onValueChange={(v) => setIssueUnit(v as "kg" | "sqm")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Quantity ({issueUnit})</Label>
+                <Input type="number" min="0" step="0.01" value={issueQty} onChange={(e) => setIssueQty(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>GSM {issueUnit === "sqm" && <span className="text-destructive">*</span>}</Label>
+                <Input type="number" min="0" step="0.01" value={issueGsm} onChange={(e) => setIssueGsm(e.target.value)} placeholder="e.g. 110" />
+              </div>
+              <div>
+                <Label>Thickness (mm)</Label>
+                <Input type="number" min="0" step="0.001" value={issueThickness} onChange={(e) => setIssueThickness(e.target.value)} placeholder="optional" />
+              </div>
+            </div>
+            {issueUnit === "sqm" && issueQty && issueGsm && Number(issueGsm) > 0 && (
+              <div className="text-xs rounded bg-muted px-3 py-2">
+                Will deduct <span className="font-semibold">{((Number(issueQty) * Number(issueGsm)) / 1000).toFixed(2)} kg</span>
+                {" "}from inventory ({issueQty} sqm × {issueGsm} gsm ÷ 1000)
+              </div>
+            )}
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Issued To (Production / Slitting Manager)</Label>
+              <Select value={issueRecipientId} onValueChange={setIssueRecipientId}>
+                <SelectTrigger><SelectValue placeholder="Select recipient (optional)" /></SelectTrigger>
+                <SelectContent>{recipients.map((r) => <SelectItem key={r.user_id} value={r.user_id}>{r.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Notes (optional)</Label>
+              <Input value={issueNotes} onChange={(e) => setIssueNotes(e.target.value)} placeholder="e.g. PO# or job ref" />
+            </div>
+            <Button onClick={issueMaterial} className="w-full bg-secondary hover:bg-secondary/90">Issue Material</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogTrigger asChild>
+          <Button className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-2" />Add Material</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Raw Material</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Name</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. ALUMINIUM FOIL 009MIC" /></div>
+            <div>
+              <Label>Unit</Label>
+              <Select value={newUnit} onValueChange={setNewUnit}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                  <SelectItem value="meters">Meters</SelectItem>
+                  <SelectItem value="rolls">Rolls</SelectItem>
+                  <SelectItem value="pieces">Pieces</SelectItem>
+                  <SelectItem value="liters">Liters</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={addMaterial} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-6">
-      {!embedded && (
+      {!embedded ? (
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Raw Materials</h1>
-          {!readOnly && (
-            <div className="flex gap-2">
-              <Dialog open={stockOpen} onOpenChange={setStockOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline"><ArrowDownToLine className="h-4 w-4 mr-2" />Add Stock</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Add Stock (Purchase)</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Raw Material</Label>
-                      <Select value={stockMaterialId} onValueChange={setStockMaterialId}>
-                        <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
-                        <SelectContent>{materials.filter(m => m.status === "active").map((m) => <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Quantity ({materials.find(m => m.id === stockMaterialId)?.unit ?? 'kg'})</Label>
-                      <Input type="number" min="0" step="0.01" value={stockQty} onChange={(e) => setStockQty(e.target.value)} placeholder="0" />
-                    </div>
-                    <div>
-                      <Label>Date</Label>
-                      <Input type="date" value={stockDate} onChange={(e) => setStockDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Lot Number</Label>
-                      <Input value={stockLot} onChange={(e) => setStockLot(e.target.value)} placeholder="e.g. LOT-2025-001" />
-                    </div>
-                    <div>
-                      <Label>Supplier / From</Label>
-                      <Input value={stockSupplier} onChange={(e) => setStockSupplier(e.target.value)} placeholder="e.g. Combined Origins Ltd" />
-                    </div>
-                    <div>
-                      <Label>Pallets / Pieces</Label>
-                      <Input type="number" min="0" step="1" value={stockPallets} onChange={(e) => setStockPallets(e.target.value)} placeholder="e.g. 29" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Thickness (mm)</Label>
-                        <Input type="number" min="0" step="0.001" value={stockThickness} onChange={(e) => setStockThickness(e.target.value)} placeholder="e.g. 0.13" />
-                      </div>
-                      <div>
-                        <Label>GSM</Label>
-                        <Input type="number" min="0" step="0.01" value={stockGsm} onChange={(e) => setStockGsm(e.target.value)} placeholder="e.g. 80" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Notes (optional)</Label>
-                      <Input value={stockNotes} onChange={(e) => setStockNotes(e.target.value)} placeholder="e.g. invoice #" />
-                    </div>
-                    <Button onClick={addStockEntry} className="w-full bg-secondary hover:bg-secondary/90">Add Stock</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={addOpen} onOpenChange={setAddOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-2" />Add Material</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Add Raw Material</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div><Label>Name</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. ALUMINIUM FOIL 009MIC" /></div>
-                    <div>
-                      <Label>Unit</Label>
-                      <Select value={newUnit} onValueChange={setNewUnit}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                          <SelectItem value="meters">Meters</SelectItem>
-                          <SelectItem value="rolls">Rolls</SelectItem>
-                          <SelectItem value="pieces">Pieces</SelectItem>
-                          <SelectItem value="liters">Liters</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={addMaterial} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
+          {actionButtons}
         </div>
+      ) : (
+        !readOnly && <div className="flex justify-end">{actionButtons}</div>
       )}
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -417,7 +599,7 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
                   const gLabel = e.gsm != null ? `${e.gsm} gsm` : "—";
                   const key = (tLabel === "—" && gLabel === "—") ? "No spec" : `${tLabel} · ${gLabel}`;
                   const v = variantMap.get(key) ?? { in: 0, out: 0 };
-                  if (e.kind === "out") v.out += Number(e.quantity) || 0;
+                  if (e.kind === "out" || e.kind === "issue") v.out += Number(e.quantity) || 0;
                   else v.in += Number(e.quantity) || 0;
                   variantMap.set(key, v);
                 });
@@ -525,19 +707,28 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
               {filteredEntries.length === 0 ? (
                 <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No stock entries match your filters</TableCell></TableRow>
               ) : filteredEntries.map((e) => {
-                const isOut = e.kind === "out";
+                const isSale = e.kind === "out";
+                const isIssue = e.kind === "issue";
+                const isOut = isSale || isIssue;
+                const typeLabel = isSale ? "Sale" : isIssue ? "Issued" : "In";
+                const qtyDisplay = isIssue && e.issue_quantity != null && e.issue_unit
+                  ? `${Number(e.issue_quantity).toLocaleString()} ${e.issue_unit} → ${Number(e.quantity).toLocaleString()} kg`
+                  : `${Number(e.quantity).toLocaleString()} ${e.material_unit}`;
+                const canEditRow = isIssue
+                  ? false // issues are immutable in this view; deleting/editing trigger needs more UX
+                  : !isSale && !readOnly;
                 return (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell>
-                    <Badge variant={isOut ? "destructive" : "default"}>{isOut ? "Out (Sale)" : "In"}</Badge>
+                    <Badge variant={isOut ? "destructive" : "default"}>{typeLabel}</Badge>
                   </TableCell>
                   <TableCell>{e.material_name}</TableCell>
                   <TableCell>{e.supplier ?? "—"}</TableCell>
                   <TableCell className={`text-right font-mono ${isOut ? "text-destructive" : ""}`}>
-                    {isOut ? "−" : "+"}{Number(e.quantity).toLocaleString()} {e.material_unit}
+                    {isOut ? "−" : "+"}{qtyDisplay}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
+                  <TableCell className="text-muted-foreground">{isIssue ? (e.issue_unit ?? "kg") : e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.thickness_mm != null ? `${e.thickness_mm} mm` : "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.gsm != null ? `${e.gsm}` : "—"}</TableCell>
@@ -545,7 +736,7 @@ export default function RawMaterials({ embedded = false, readOnly = false }: Raw
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>
                   <TableCell className="text-right">
-                    {isOut || readOnly ? (
+                    {!canEditRow ? (
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (
                       <>
