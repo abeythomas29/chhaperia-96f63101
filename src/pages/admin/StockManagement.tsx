@@ -85,10 +85,11 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
   const [issueClientId, setIssueClientId] = useState("");
   const [issueRecipientUserId, setIssueRecipientUserId] = useState("");
   const [issueQuantity, setIssueQuantity] = useState("");
-  const [issueUnit, setIssueUnit] = useState("meters");
+  const [issueUnit, setIssueUnit] = useState<"sqm" | "kg">("sqm");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [issueThickness, setIssueThickness] = useState("");
+  const [issueGsm, setIssueGsm] = useState("");
   const [issuing, setIssuing] = useState(false);
 
 
@@ -312,22 +313,42 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
 
     setIssuing(true);
 
+    // Compute sqm/kg conversions for record-keeping (stored in notes since DB has no dedicated columns).
+    const qty = Number(issueQuantity);
+    const gsmNum = issueGsm ? Number(issueGsm) : null;
+    let sqm: number | null = null;
+    let kg: number | null = null;
+    if (issueUnit === "sqm") {
+      sqm = qty;
+      if (gsmNum && gsmNum > 0) kg = (qty * gsmNum) / 1000;
+    } else {
+      kg = qty;
+      if (gsmNum && gsmNum > 0) sqm = (qty * 1000) / gsmNum;
+    }
+
+    const metaParts: string[] = [];
+    if (sqm != null) metaParts.push(`sqm=${sqm.toFixed(2)}`);
+    if (kg != null) metaParts.push(`kg=${kg.toFixed(2)}`);
+    if (gsmNum != null) metaParts.push(`gsm=${gsmNum}`);
+    const metaStr = metaParts.length ? `[${metaParts.join(" ")}]` : "";
+    const finalNotes = [issueNotes?.trim(), metaStr].filter(Boolean).join(" ").trim() || null;
+
     const { error } = await supabase.from("stock_issues").insert({
       product_code_id: issueProductCodeId,
       recipient_type: issueRecipientType,
       client_id: issueRecipientType === "client" ? issueClientId : null,
       recipient_user_id: issueRecipientType === "production_manager" ? issueRecipientUserId : null,
-      quantity: Number(issueQuantity),
+      quantity: qty,
       unit: issueUnit,
       thickness_mm: issueThickness ? Number(issueThickness) : null,
-      notes: issueNotes || null,
+      notes: finalNotes,
       issued_by: user.id,
       date: issueDate,
     } as any);
 
     setIssuing(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Issue failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Stock issued successfully" });
       setIssueOpen(false);
@@ -342,22 +363,22 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
     setIssueClientId("");
     setIssueRecipientUserId("");
     setIssueQuantity("");
-    setIssueUnit("meters");
+    setIssueUnit("sqm");
     setIssueThickness("");
+    setIssueGsm("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
 
 
-  const openIssueForProduct = (pcId: string, unit: string) => {
+  const openIssueForProduct = (pcId: string) => {
     setIssueProductCodeId(pcId);
-    setIssueUnit(unit);
     setIssueOpen(true);
   };
 
   return (
     <div className="space-y-6">
-      {!embedded && (
+      {!embedded ? (
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Stock Management</h1>
           {!readOnly && (
@@ -366,6 +387,14 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
             </Button>
           )}
         </div>
+      ) : (
+        !readOnly && (
+          <div className="flex justify-end">
+            <Button onClick={() => setIssueOpen(true)} className="bg-secondary hover:bg-secondary/90">
+              <PackagePlus className="h-4 w-4 mr-2" /> Issue Stock
+            </Button>
+          </div>
+        )
       )}
 
       <div className="relative max-w-sm">
@@ -431,16 +460,7 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
                   </div>
                 )}
 
-                {!readOnly && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-3"
-                    onClick={() => openIssueForProduct(s.product_code_id, s.unit)}
-                  >
-                    Issue
-                  </Button>
-                )}
+                {/* Per-card Issue button removed — use top-level Issue Stock button */}
               </CardContent>
             </Card>
           ))
@@ -638,7 +658,7 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
               <Label>Product Code</Label>
               <SearchableSelect
                 value={issueProductCodeId}
-                onValueChange={(v) => { setIssueProductCodeId(v); const s = summaries.find(s => s.product_code_id === v); if (s) setIssueUnit(s.unit); }}
+                onValueChange={(v) => { setIssueProductCodeId(v); }}
                 placeholder="Select product"
                 options={productCodes.map((p) => {
                   const stock = summaries.find(s => s.product_code_id === p.id);
@@ -684,27 +704,45 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
                 />
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label>Quantity ({issueUnit})</Label>
                 <Input type="number" min="0" step="0.01" value={issueQuantity} onChange={(e) => setIssueQuantity(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit</Label>
+                <Select value={issueUnit} onValueChange={(v) => setIssueUnit(v as "sqm" | "kg")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
+                    <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Thickness (mm)</Label>
                 <Input type="number" min="0" step="0.01" value={issueThickness} onChange={(e) => setIssueThickness(e.target.value)} placeholder="Optional" />
               </div>
               <div className="space-y-2">
-                <Label>Unit</Label>
-                <Select value={issueUnit} onValueChange={setIssueUnit}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="meters">Meters</SelectItem>
-                    <SelectItem value="sqm">Square Meters (sqm)</SelectItem>
-                    <SelectItem value="kg">Kg</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>GSM</Label>
+                <Input type="number" min="0" step="1" value={issueGsm} onChange={(e) => setIssueGsm(e.target.value)} placeholder="for conversion" />
               </div>
             </div>
+            {issueQuantity && (() => {
+              const qty = Number(issueQuantity);
+              const gsmNum = issueGsm ? Number(issueGsm) : 0;
+              if (!qty || !gsmNum) return (
+                <p className="text-xs text-muted-foreground">Enter GSM to auto-convert between sqm and kg.</p>
+              );
+              const sqm = issueUnit === "sqm" ? qty : (qty * 1000) / gsmNum;
+              const kg = issueUnit === "kg" ? qty : (qty * gsmNum) / 1000;
+              return (
+                <div className="flex gap-4 text-sm p-2 rounded bg-muted">
+                  <span>≈ <strong>{sqm.toFixed(2)} sqm</strong></span>
+                  <span>≈ <strong>{kg.toFixed(2)} kg</strong></span>
+                </div>
+              );
+            })()}
             <div className="space-y-2">
               <Label>Notes (optional)</Label>
               <Textarea rows={2} value={issueNotes} onChange={(e) => setIssueNotes(e.target.value)} placeholder="e.g. Delivery challan #123" />
