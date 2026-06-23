@@ -363,22 +363,22 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
     setIssueClientId("");
     setIssueRecipientUserId("");
     setIssueQuantity("");
-    setIssueUnit("meters");
+    setIssueUnit("sqm");
     setIssueThickness("");
+    setIssueGsm("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
 
 
-  const openIssueForProduct = (pcId: string, unit: string) => {
+  const openIssueForProduct = (pcId: string) => {
     setIssueProductCodeId(pcId);
-    setIssueUnit(unit);
     setIssueOpen(true);
   };
 
   return (
     <div className="space-y-6">
-      {!embedded && (
+      {!embedded ? (
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Stock Management</h1>
           {!readOnly && (
@@ -387,6 +387,14 @@ export default function StockManagement({ embedded = false, readOnly = false }: 
             </Button>
           )}
         </div>
+      ) : (
+        !readOnly && (
+          <div className="flex justify-end">
+            <Button onClick={() => setIssueOpen(true)} className="bg-secondary hover:bg-secondary/90">
+              <PackagePlus className="h-4 w-4 mr-2" /> Issue Stock
+            </Button>
+          </div>
+        )
       )}
 
       <div className="relative max-w-sm">
