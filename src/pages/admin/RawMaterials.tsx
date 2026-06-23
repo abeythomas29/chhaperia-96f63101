@@ -35,7 +35,17 @@ interface StockEntry {
   notes: string | null;
   added_by: string;
   created_at: string;
-  kind?: "in" | "out";
+  entry_type?: string | null;
+  issue_unit?: string | null;
+  issue_quantity?: number | null;
+  issue_quantity_kg?: number | null;
+  issued_to_user_id?: string | null;
+  kind?: "in" | "out" | "issue";
+}
+
+interface RecipientOption {
+  user_id: string;
+  name: string;
 }
 
 
