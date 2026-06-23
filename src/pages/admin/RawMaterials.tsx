@@ -30,6 +30,8 @@ interface StockEntry {
   lot_number: string | null;
   supplier: string | null;
   pallets: number | null;
+  pallet_count?: number | null;
+  roll_count?: number | null;
   thickness_mm: number | null;
   gsm: number | null;
   notes: string | null;
